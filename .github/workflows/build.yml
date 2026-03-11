@@ -10,53 +10,102 @@ on:
       - '.github/workflows/build.yml'
   pull_request:
     branches: [ main, master ]
-  workflow_dispatch:   # Allow manual trigger
+  workflow_dispatch:
 
 jobs:
   build:
     runs-on: ubuntu-latest
-    
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0   # Ambil semua history untuk changelog
 
       - name: Set up build environment
         run: |
-          sudo apt-get update
-          sudo apt-get install -y \
-            build-essential \
-            libncurses5-dev \
-            zlib1g-dev \
-            gawk \
-            git \
-            gettext \
-            libssl-dev \
-            xsltproc \
-            rsync \
-            wget \
-            unzip \
-            python3
+          sudo apt-get update -qq
+          sudo apt-get install -y build-essential git wget unzip python3
 
-      - name: Get version info
+      - name: Generate version & changelog
         id: version
         run: |
-          VERSION=$(grep 'PKG_VERSION:=' Makefile | cut -d= -f2)
-          RELEASE=$(grep 'PKG_RELEASE:=' Makefile | cut -d= -f2)
+          # ── Hitung versi otomatis dari jumlah commit ──────────────────
+          COMMIT_COUNT=$(git rev-list --count HEAD)
+          MAJOR=1
+          MINOR=$(( COMMIT_COUNT / 10 ))
+          PATCH=$(( COMMIT_COUNT % 10 ))
+          AUTO_VERSION="${MAJOR}.${MINOR}.${PATCH}"
+          RELEASE=1
           SHORT_SHA=$(echo "${{ github.sha }}" | cut -c1-7)
-          echo "version=${VERSION}" >> $GITHUB_OUTPUT
-          echo "release=${RELEASE}" >> $GITHUB_OUTPUT
-          echo "short_sha=${SHORT_SHA}" >> $GITHUB_OUTPUT
-          echo "pkg_name=luci-app-remotbot_${VERSION}-${RELEASE}_all.ipk" >> $GITHUB_OUTPUT
+          DATE=$(date '+%Y-%m-%d')
 
-      - name: Build IPK manually (without full OpenWrt SDK)
+          echo "version=${AUTO_VERSION}" >> $GITHUB_OUTPUT
+          echo "release=${RELEASE}"      >> $GITHUB_OUTPUT
+          echo "short_sha=${SHORT_SHA}"  >> $GITHUB_OUTPUT
+          echo "date=${DATE}"            >> $GITHUB_OUTPUT
+          echo "tag=v${AUTO_VERSION}"    >> $GITHUB_OUTPUT
+
+          # ── Update versi di Makefile ────────────────────────────────
+          sed -i "s/^PKG_VERSION:=.*/PKG_VERSION:=${AUTO_VERSION}/" Makefile
+          sed -i "s/^PKG_RELEASE:=.*/PKG_RELEASE:=${RELEASE}/"      Makefile
+
+          # ── Generate changelog dari commit messages ─────────────────
+          # Ambil commit sejak tag terakhir, atau 20 commit terakhir jika belum ada tag
+          LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+
+          if [ -n "$LAST_TAG" ]; then
+            COMMITS=$(git log ${LAST_TAG}..HEAD --pretty=format:"- %s" --no-merges)
+          else
+            COMMITS=$(git log --pretty=format:"- %s" --no-merges -20)
+          fi
+
+          if [ -z "$COMMITS" ]; then
+            COMMITS="- Initial release"
+          fi
+
+          # Simpan changelog ke file (hindari masalah multiline di env)
+          cat > /tmp/changelog.md <<CHANGELOG
+          ## v${AUTO_VERSION} — ${DATE}
+
+          ### Perubahan
+          ${COMMITS}
+
+          ### Info Build
+          - Commit: \`${{ github.sha }}\`
+          - Branch: \`${{ github.ref_name }}\`
+          - Build: \`#${{ github.run_number }}\`
+
+          ### Instalasi
+          \`\`\`bash
+          scp luci-app-remotbot_*.ipk root@192.168.1.1:/tmp/
+          ssh root@192.168.1.1 "opkg install /tmp/luci-app-remotbot_*.ipk"
+          \`\`\`
+          Lalu buka LuCI → **Services → Remot Bot → Settings**
+          CHANGELOG
+
+          echo "changelog_file=/tmp/changelog.md" >> $GITHUB_OUTPUT
+
+      - name: Build IPK
         run: |
           chmod +x scripts/build-ipk.sh
           bash scripts/build-ipk.sh
 
+      - name: Rename IPK with new version
+        run: |
+          VERSION=${{ steps.version.outputs.version }}
+          RELEASE=${{ steps.version.outputs.release }}
+          # Rename apapun yang ada di dist/ ke nama versi terbaru
+          for f in dist/*.ipk; do
+            NEW="dist/luci-app-remotbot_${VERSION}-${RELEASE}_all.ipk"
+            [ "$f" != "$NEW" ] && mv "$f" "$NEW" || true
+          done
+          ls -lh dist/
+
       - name: Upload IPK as artifact
         uses: actions/upload-artifact@v4
         with:
-          name: luci-app-remotbot-ipk
+          name: luci-app-remotbot-${{ steps.version.outputs.version }}
           path: dist/*.ipk
           retention-days: 30
 
@@ -64,27 +113,12 @@ jobs:
         if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
         uses: softprops/action-gh-release@v1
         with:
-          tag_name: v${{ steps.version.outputs.version }}-${{ steps.version.outputs.short_sha }}
-          name: RemotWRT Bot v${{ steps.version.outputs.version }} (${{ steps.version.outputs.short_sha }})
-          body: |
-            ## RemotWRT Bot IPK Package
-            
-            ### Instalasi
-            1. Download file `.ipk` dari Assets di bawah
-            2. Upload ke OpenWrt via SCP atau Termux:
-               ```bash
-               scp luci-app-remotbot_*.ipk root@192.168.1.1:/tmp/
-               ssh root@192.168.1.1 "opkg install /tmp/luci-app-remotbot_*.ipk"
-               ```
-            3. Buka LuCI: **Services → Remot Bot → Settings**
-            4. Masukkan **Bot Token** dan **Telegram User ID**
-            5. Klik **Start** di Dashboard
-            
-            ### Perubahan
-            - Commit: `${{ github.sha }}`
-            - Branch: `${{ github.ref_name }}`
+          tag_name: ${{ steps.version.outputs.tag }}
+          name: RemotWRT Bot ${{ steps.version.outputs.tag }} (${{ steps.version.outputs.date }})
+          body_path: /tmp/changelog.md
           files: dist/*.ipk
           draft: false
           prerelease: false
+          make_latest: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
