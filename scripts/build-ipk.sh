@@ -178,7 +178,7 @@ PRMEOF
 # python-telegram-bot & requests diinstall oleh init.d saat start pertama
 build_ipk "remotbot" \
     "RemotWRT Telegram Monitoring Bot for OpenWrt / Raspberry Pi 4" \
-    "python3-light, python3-logging, python3-asyncio, python3-urllib, python3-codecs, python3-pip"
+    "python3-light, python3-pip"
 
 build_ipk "luci-app-remotbot" \
     "LuCI interface for RemotWRT Telegram Bot (Services > Remot Bot)" \
