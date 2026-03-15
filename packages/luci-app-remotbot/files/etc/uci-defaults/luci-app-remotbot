@@ -1,11 +1,9 @@
 #!/bin/sh
-if ! uci -q get remotbot.main >/dev/null 2>&1; then
-    uci set remotbot.main=remotbot
-    uci set remotbot.main.bot_token=''
-    uci set remotbot.main.allowed_users=''
-    uci set remotbot.main.cgi_online_path='/www/cgi-bin/online'
-    uci set remotbot.main.enabled='0'
-    uci set remotbot.main.log_level='INFO'
-    uci commit remotbot
-fi
+uci -q get remotbot.main >/dev/null 2>&1 || uci set remotbot.main=remotbot
+uci -q get remotbot.main.bot_token >/dev/null 2>&1 || uci set remotbot.main.bot_token=''
+uci -q get remotbot.main.allowed_users >/dev/null 2>&1 || uci set remotbot.main.allowed_users=''
+uci -q get remotbot.main.cgi_online_path >/dev/null 2>&1 || uci set remotbot.main.cgi_online_path='/www/cgi-bin/online'
+uci -q get remotbot.main.enabled >/dev/null 2>&1 || uci set remotbot.main.enabled='0'
+uci -q get remotbot.main.log_level >/dev/null 2>&1 || uci set remotbot.main.log_level='INFO'
+uci commit remotbot 2>/dev/null || true
 exit 0

@@ -3,13 +3,17 @@
     "description": "Grant access for RemotWRT Bot LuCI app",
     "read": {
       "uci": [ "remotbot" ],
-      "ubus": { "service": [ "list" ], "rc": [ "list" ], "file": [ "read", "exec" ] },
-      "file": { "/var/run/remotbot.pid": [ "read" ], "/etc/init.d/remotbot": [ "exec" ] }
+      "ubus": {
+        "service": [ "list" ],
+        "rc": [ "list" ]
+      }
     },
     "write": {
       "uci": [ "remotbot" ],
-      "ubus": { "service": [ "set", "list", "event", "signal" ], "rc": [ "init" ], "file": [ "write", "exec" ] },
-      "file": { "/etc/init.d/remotbot": [ "exec" ] }
+      "ubus": {
+        "service": [ "set", "list", "event", "signal" ],
+        "rc": [ "init" ]
+      }
     }
   }
 }

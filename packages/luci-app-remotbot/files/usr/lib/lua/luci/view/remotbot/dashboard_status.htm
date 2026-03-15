@@ -1,0 +1,162 @@
+<%+header%>
+
+<style>
+.rb-card {
+    background: #fff;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 16px 20px;
+    margin-bottom: 16px;
+    box-shadow: 0 1px 3px rgba(0,0,0,.08);
+}
+.rb-card h3 {
+    margin: 0 0 14px;
+    font-size: 16px;
+    color: #333;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.rb-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 6px 0;
+    border-bottom: 1px solid #f0f0f0;
+    font-size: 13px;
+}
+.rb-row:last-child { border-bottom: none; }
+.rb-label { color: #666; }
+.rb-val   { font-weight: 600; }
+.badge {
+    display: inline-block;
+    padding: 3px 12px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: bold;
+    color: #fff;
+}
+.badge-up   { background: #27ae60; }
+.badge-down { background: #e74c3c; }
+.btn-row { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 4px; }
+.rb-btn {
+    padding: 7px 18px;
+    border: none;
+    border-radius: 5px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    color: #fff;
+}
+.btn-start   { background: #27ae60; }
+.btn-stop    { background: #e74c3c; }
+.btn-restart { background: #2980b9; }
+.btn-settings{ background: #7f8c8d; }
+.rb-header {
+    background: linear-gradient(135deg, #2c3e50, #3498db);
+    border-radius: 10px;
+    padding: 20px 24px;
+    margin-bottom: 20px;
+    color: #fff;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.rb-header h2 { margin: 0 0 4px; font-size: 22px; }
+.rb-header p  { margin: 0; opacity: .8; font-size: 13px; }
+.alert-warn {
+    background: #fff3cd;
+    border: 1px solid #ffc107;
+    border-radius: 6px;
+    padding: 12px 16px;
+    font-size: 13px;
+    margin-bottom: 16px;
+}
+</style>
+
+<div style="max-width:900px;margin:0 auto;">
+
+    <!-- Header -->
+    <div class="rb-header">
+        <div>
+            <h2>🤖 RemotWRT Bot</h2>
+            <p>Telegram Monitoring Bot — OpenWrt / Raspberry Pi 4</p>
+        </div>
+        <% if self.running then %>
+            <span class="badge badge-up">● Running</span>
+        <% else %>
+            <span class="badge badge-down">● Stopped</span>
+        <% end %>
+    </div>
+
+    <% if not self.bot_token or self.bot_token == "" then %>
+    <div class="alert-warn">
+        ⚠️ <strong>Bot token belum dikonfigurasi!</strong>
+        Buka <a href="<%=luci.dispatcher.build_url("admin", "services", "remotbot", "settings")%>">Settings</a>
+        dan isi token dari @BotFather.
+    </div>
+    <% end %>
+
+    <!-- Status -->
+    <div class="rb-card">
+        <h3>📊 Status Bot</h3>
+        <div class="rb-row">
+            <span class="rb-label">Service</span>
+            <span class="rb-val">
+                <% if self.running then %>
+                    <span class="badge badge-up">● Running</span>
+                <% else %>
+                    <span class="badge badge-down">● Stopped</span>
+                <% end %>
+            </span>
+        </div>
+        <div class="rb-row">
+            <span class="rb-label">Auto-Start</span>
+            <span class="rb-val" style="color:<%=self.enabled and '#27ae60' or '#e74c3c'%>">
+                <%=self.enabled and "Ya" or "Tidak"%>
+            </span>
+        </div>
+        <div class="rb-row">
+            <span class="rb-label">Bot Token</span>
+            <span class="rb-val" style="font-family:monospace;color:<%=(self.bot_token and self.bot_token ~= '') and '#27ae60' or '#e74c3c'%>">
+                <% if self.bot_token and self.bot_token ~= "" then %>
+                    <%=self.bot_token:sub(1,8)%>••••••••••••<%=self.bot_token:sub(-4)%>
+                <% else %>
+                    Belum dikonfigurasi
+                <% end %>
+            </span>
+        </div>
+        <div class="rb-row">
+            <span class="rb-label">Allowed Users</span>
+            <span class="rb-val"><%=self.allowed ~= "" and self.allowed or "-"%></span>
+        </div>
+    </div>
+
+    <!-- Kontrol -->
+    <div class="rb-card">
+        <h3>⚙️ Kontrol Service</h3>
+        <form method="post" action="<%=luci.dispatcher.build_url("admin", "services", "remotbot", "dashboard")%>">
+            <input type="hidden" name="token" value="<%=luci.sys.getenv("REQUEST_URI")%>" />
+            <div class="btn-row">
+                <button class="rb-btn btn-start"   type="submit" name="action" value="start">▶ Start</button>
+                <button class="rb-btn btn-stop"    type="submit" name="action" value="stop">■ Stop</button>
+                <button class="rb-btn btn-restart" type="submit" name="action" value="restart">↺ Restart</button>
+                <a href="<%=luci.dispatcher.build_url("admin", "services", "remotbot", "settings")%>">
+                    <button class="rb-btn btn-settings" type="button">⚙ Settings</button>
+                </a>
+            </div>
+        </form>
+    </div>
+
+    <!-- Info -->
+    <div class="rb-card">
+        <h3>ℹ️ Info Package</h3>
+        <div class="rb-row"><span class="rb-label">Package</span><span class="rb-val">remotbot v1.0.0</span></div>
+        <div class="rb-row"><span class="rb-label">Script</span><span class="rb-val">/usr/bin/pi4Bot.py</span></div>
+        <div class="rb-row"><span class="rb-label">Config</span><span class="rb-val">/etc/config/remotbot</span></div>
+        <div class="rb-row"><span class="rb-label">PID File</span><span class="rb-val">/var/run/remotbot.pid</span></div>
+        <div class="rb-row"><span class="rb-label">Source</span><span class="rb-val">github.com/irfanFRizki/RemotWRT-Bot</span></div>
+    </div>
+
+</div>
+
+<%+footer%>
