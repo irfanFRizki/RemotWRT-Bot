@@ -1,0 +1,47 @@
+name: Build IPK
+
+on:
+  push:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build IPK
+        run: |
+          chmod +x scripts/build-ipk.sh
+          bash scripts/build-ipk.sh 1.0.0
+
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: remotbot-ipk
+          path: dist/*.ipk
+          retention-days: 30
+
+      - name: Create Release
+        if: github.event_name == 'push'
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: v1.0.0-${{ github.run_number }}
+          name: RemotWRT Bot v1.0.0 (build ${{ github.run_number }})
+          files: dist/*.ipk
+          body: |
+            ## Install
+
+            ```sh
+            cd /tmp
+            wget <URL_remotbot_ipk>
+            wget <URL_luci-app-remotbot_ipk>
+            opkg install remotbot_*.ipk
+            opkg install luci-app-remotbot_*.ipk
+            ```
+
+            Setelah install: **LuCI → Services → Remot Bot → Settings**
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
