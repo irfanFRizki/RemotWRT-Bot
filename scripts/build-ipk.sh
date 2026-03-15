@@ -174,19 +174,25 @@ PRERM_EOF
     echo "  Packing control..."
     tar -czf "$WORK/control.tar.gz" -C "$CTRL_DIR" .
 
-    # Write debian-binary — MUST be exactly "2.0\n", no trailing spaces
+    # Write debian-binary — exactly "2.0\n" (4 bytes)
     printf '2.0\n' > "$WORK/debian-binary"
 
-    # Create .ipk (ar archive)
-    # CRITICAL: cd into WORK dir and use bare filenames only.
-    # ar with absolute paths stores full paths — opkg will reject that.
+    # -------------------------------------------------------
+    # Create .ipk = gzipped tar (NOT ar/deb format!)
+    # IPK format: tar.gz containing:
+    #   ./debian-binary
+    #   ./control.tar.gz
+    #   ./data.tar.gz
+    # opkg rejects ar/deb format with "Malformed package file"
+    # -------------------------------------------------------
     local IPK_NAME="${PKG_NAME}_${VERSION}-${RELEASE}_${ARCH}.ipk"
-    local IPK_ABS="$OUTPUT_DIR/$IPK_NAME"
     echo "  Creating $IPK_NAME..."
     (
         cd "$WORK"
-        # Use 'ar r' only — no 's' (symbol table) or 'c' flags needed for IPK
-        ar r "$IPK_ABS" debian-binary control.tar.gz data.tar.gz
+        tar -czf "$OUTPUT_DIR/$IPK_NAME" \
+            ./debian-binary \
+            ./control.tar.gz \
+            ./data.tar.gz
     )
 
     echo "  ✓ $OUTPUT_DIR/$IPK_NAME"
@@ -220,9 +226,9 @@ for ipk in "$OUTPUT_DIR"/*.ipk; do
     MD5=$(md5sum "$ipk" | cut -d' ' -f1)
     SHA256=$(sha256sum "$ipk" | cut -d' ' -f1)
 
-    # Extract control
+    # Extract control from IPK (IPK = gzipped tar, not ar)
     TMPDIR=$(mktemp -d)
-    (cd "$TMPDIR" && ar x "$ipk")
+    tar -xzf "$ipk" -C "$TMPDIR" 2>/dev/null || true
     tar -xzf "$TMPDIR/control.tar.gz" -C "$TMPDIR" 2>/dev/null || true
     if [ -f "$TMPDIR/control" ]; then
         cat "$TMPDIR/control" >> "$PACKAGES_FILE"
