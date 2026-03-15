@@ -1,0 +1,6 @@
+config remotbot 'main'
+	option bot_token ''
+	option allowed_users ''
+	option cgi_online_path '/www/cgi-bin/online'
+	option enabled '0'
+	option log_level 'INFO'
