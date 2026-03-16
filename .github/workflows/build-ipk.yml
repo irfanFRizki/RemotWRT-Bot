@@ -9,33 +9,12 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
       - name: Build IPK
         run: |
           chmod +x scripts/build-ipk.sh
           bash scripts/build-ipk.sh 1.0.0
-
-      - name: Verify IPK contents
-        run: |
-          echo "=== Verifikasi isi IPK ==="
-          for ipk in dist/*.ipk; do
-            echo ""
-            echo "--- $(basename $ipk) ---"
-            TMPDIR=$(mktemp -d)
-            tar -xzf "$ipk" -C "$TMPDIR"
-            echo "Outer members:"
-            ls "$TMPDIR"
-            echo "Data files:"
-            tar -tzf "$TMPDIR/data.tar.gz" | grep -v '/$'
-            echo "Control files:"
-            tar -tzf "$TMPDIR/control.tar.gz" | grep -v '/$'
-            echo "Control content:"
-            tar -xzf "$TMPDIR/control.tar.gz" -C "$TMPDIR"
-            cat "$TMPDIR/control"
-            rm -rf "$TMPDIR"
-          done
 
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
@@ -56,32 +35,14 @@ jobs:
 
             ```sh
             cd /tmp
-
-            # Download
             wget <URL_remotbot_*.ipk>
             wget <URL_luci-app-remotbot_*.ipk>
-
-            # Uninstall lama jika ada
             opkg remove remotbot luci-app-remotbot 2>/dev/null
-
-            # Install remotbot TANPA auto-download deps
             opkg install remotbot_*.ipk --nodeps
-
-            # Install luci-app
             opkg install luci-app-remotbot_*.ipk
-
-            # Bersihkan LuCI cache
             rm -rf /tmp/luci-indexcache /tmp/luci-modulecache/
             ```
 
-            **Setelah install:**
-            1. LuCI → Services → Remot Bot → Settings
-            2. Isi Bot Token (dari @BotFather)
-            3. Isi User ID (dari @userinfobot)
-            4. Enable → Save → Dashboard → Start
-
-            > **Catatan:** Gunakan `--nodeps` saat install remotbot untuk
-            > menghindari download python3-multiprocessing yang sering timeout.
-            > Python3 sudah tersedia di OpenWrt 24.10.
+            Setelah install: **LuCI → Services → Remot Bot → Settings**
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

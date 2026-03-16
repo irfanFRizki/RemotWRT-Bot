@@ -4,6 +4,13 @@ uci -q get remotbot.main.bot_token >/dev/null 2>&1 || uci set remotbot.main.bot_
 uci -q get remotbot.main.allowed_users >/dev/null 2>&1 || uci set remotbot.main.allowed_users=''
 uci -q get remotbot.main.cgi_online_path >/dev/null 2>&1 || uci set remotbot.main.cgi_online_path='/www/cgi-bin/online'
 uci -q get remotbot.main.enabled >/dev/null 2>&1 || uci set remotbot.main.enabled='0'
-uci -q get remotbot.main.log_level >/dev/null 2>&1 || uci set remotbot.main.log_level='INFO'
+uci -q get remotbot.main.language >/dev/null 2>&1 || uci set remotbot.main.language='id'
+uci -q get remotbot.main.cpu_temp_threshold >/dev/null 2>&1 || uci set remotbot.main.cpu_temp_threshold='75'
+uci -q get remotbot.main.ram_threshold >/dev/null 2>&1 || uci set remotbot.main.ram_threshold='85'
+uci -q get remotbot.main.wan_timeout_minutes >/dev/null 2>&1 || uci set remotbot.main.wan_timeout_minutes='60'
+uci -q get remotbot.main.notify_cpu_temp >/dev/null 2>&1 || uci set remotbot.main.notify_cpu_temp='1'
+uci -q get remotbot.main.notify_ram >/dev/null 2>&1 || uci set remotbot.main.notify_ram='1'
+uci -q get remotbot.main.notify_wan >/dev/null 2>&1 || uci set remotbot.main.notify_wan='1'
+uci -q get remotbot.main.notify_unknown_device >/dev/null 2>&1 || uci set remotbot.main.notify_unknown_device='1'
 uci commit remotbot 2>/dev/null || true
 exit 0

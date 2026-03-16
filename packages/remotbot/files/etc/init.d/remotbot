@@ -10,16 +10,24 @@ PIDFILE=/var/run/remotbot.pid
 
 install_deps() {
     command -v pip3 >/dev/null 2>&1 || opkg install python3-pip 2>/dev/null || true
-    pip3 show python-telegram-bot >/dev/null 2>&1 || pip3 install python-telegram-bot --quiet 2>&1 | logger -t remotbot
-    pip3 show requests >/dev/null 2>&1 || pip3 install requests --quiet 2>&1 | logger -t remotbot
+    pip3 show python-telegram-bot >/dev/null 2>&1 || \
+        pip3 install "python-telegram-bot" --quiet 2>&1 | logger -t remotbot
+    pip3 show requests >/dev/null 2>&1 || \
+        pip3 install requests --quiet 2>&1 | logger -t remotbot
 }
 
 start_service() {
     local ENABLED=$(uci -q get remotbot.main.enabled 2>/dev/null)
-    [ "$ENABLED" = "1" ] || { echo "[RemotBot] Disabled. Enable via LuCI: Services > Remot Bot > Settings"; return 0; }
+    [ "$ENABLED" = "1" ] || {
+        echo "[RemotBot] Disabled. Enable via LuCI: Services > Remot Bot > Settings"
+        return 0
+    }
 
     local TOKEN=$(uci -q get remotbot.main.bot_token 2>/dev/null)
-    [ -n "$TOKEN" ] || { echo "[RemotBot] ERROR: Bot token belum diset!"; return 1; }
+    [ -n "$TOKEN" ] || {
+        echo "[RemotBot] ERROR: Bot token belum diset!"
+        return 1
+    }
 
     install_deps
 

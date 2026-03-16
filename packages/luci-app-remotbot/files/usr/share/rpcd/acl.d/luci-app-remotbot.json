@@ -3,17 +3,11 @@
     "description": "Grant access for RemotWRT Bot LuCI app",
     "read": {
       "uci": [ "remotbot" ],
-      "ubus": {
-        "service": [ "list" ],
-        "rc": [ "list" ]
-      }
+      "ubus": { "service": ["list"], "rc": ["list"] }
     },
     "write": {
       "uci": [ "remotbot" ],
-      "ubus": {
-        "service": [ "set", "list", "event", "signal" ],
-        "rc": [ "init" ]
-      }
+      "ubus": { "service": ["set","list","event","signal"], "rc": ["init"] }
     }
   }
 }

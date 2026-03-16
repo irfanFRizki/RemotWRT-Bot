@@ -1,7 +1,5 @@
 #!/bin/sh
-# CGI script: daftar perangkat online dari DHCP leases
-# Path: /www/cgi-bin/online
-
+# www/cgi-bin/online — CGI daftar device online via DHCP leases + ARP
 echo "Content-Type: application/json"
 echo "Access-Control-Allow-Origin: *"
 echo ""
@@ -32,7 +30,7 @@ while IFS= read -r line; do
     MAC=$(echo "$line" | awk '{print $2}')
     HOSTNAME=$(echo "$line" | awk '{print $4}')
     [ "$HOSTNAME" = "*" ] && HOSTNAME="Unknown"
-    [ -z "$HOSTNAME" ]    && HOSTNAME="Unknown"
+    [ -z "$HOSTNAME" ] && HOSTNAME="Unknown"
 
     STATUS="TIDAK TERHUBUNG"
     if echo "$NEIGH_FILE" | grep -q "^$IP "; then
