@@ -231,17 +231,27 @@ def run_command(command: str, timeout: int = 30) -> str:
         return f"Error: {str(e)}"
 
 def get_online_with_actions() -> str:
-    """Tampilkan device online dengan tombol aksi blokir/whitelist"""
+    """Tampilkan device online + status whitelist/blocked + tombol aksi"""
     devices = get_current_devices()
     if not devices:
         return "👥 <b>Online Users</b>\n\nTidak ada perangkat online"
+    cfg     = load_config()
+    wl      = [m.lower() for m in cfg.get("mac_whitelist", [])]
+    blocked = [m.lower() for m in get_blocked_macs()]
     em = {"TERHUBUNG":"🟢","TERHUBUNG TIDAK AKTIF":"🟡","TIDAK DIKETAHUI":"🟠","TIDAK TERHUBUNG":"🔴"}
-    out = "👥 <b>Online Users</b>\n<i>Pilih device untuk blokir atau tambah whitelist:</i>\n\n"
+    out = "👥 <b>Online Users</b>\n<i>Ketuk tombol di bawah untuk aksi:</i>\n\n"
     for i, d in enumerate(devices, 1):
-        hn = d.get("hostname","*") if d.get("hostname","*") != "*" else "Unknown"
-        out += (f"{i}. {em.get(d.get('status',''),'⚪')} <b>{hn}</b>\n"
+        hn  = d.get("hostname","*") if d.get("hostname","*") != "*" else "Unknown"
+        mac = d.get("mac","").lower()
+        if mac in blocked:
+            badge = "🚫 Diblokir"
+        elif mac in wl:
+            badge = "✅ Whitelist"
+        else:
+            badge = "❔ Tidak dikenal" if wl else "❔"
+        out += (f"{i}. {em.get(d.get('status',''),'⚪')} <b>{hn}</b>  <i>{badge}</i>\n"
                 f"   IP: <code>{d.get('ip','')}</code>\n"
-                f"   MAC: <code>{d.get('mac','')}</code>\n\n")
+                f"   MAC: <code>{mac}</code>\n\n")
     return out
 
 def get_online_actions_keyboard() -> InlineKeyboardMarkup:
@@ -541,14 +551,35 @@ def get_online_users() -> str:
         devices = get_current_devices()
         if not devices:
             return "👥 <b>Online Users</b>\n\nTidak ada perangkat online"
+        cfg     = load_config()
+        wl      = [m.lower() for m in cfg.get("mac_whitelist", [])]
+        blocked = [m.lower() for m in get_blocked_macs()]
         em = {"TERHUBUNG":"🟢","TERHUBUNG TIDAK AKTIF":"🟡","TIDAK DIKETAHUI":"🟠","TIDAK TERHUBUNG":"🔴"}
         out = "👥 <b>Online Users</b>\n\n"
         for i, d in enumerate(devices, 1):
-            hn = d.get('hostname','*') if d.get('hostname','*') != '*' else 'Unknown'
-            out += (f"{i}. {em.get(d.get('status',''),'⚪')} <b>{hn}</b>\n"
+            hn  = d.get("hostname","*") if d.get("hostname","*") != "*" else "Unknown"
+            mac = d.get("mac","").lower()
+            # Badge status whitelist/blocked
+            if mac in blocked:
+                badge = "🚫 <i>Diblokir</i>"
+            elif mac in wl:
+                badge = "✅ <i>Whitelist</i>"
+            else:
+                badge = "❔ <i>Tidak dikenal</i>" if wl else ""
+            out += (f"{i}. {em.get(d.get('status',''),'⚪')} <b>{hn}</b>"
+                    + (f"  {badge}" if badge else "") + "\n"
                     f"   IP: <code>{d.get('ip','')}</code>\n"
-                    f"   MAC: <code>{d.get('mac','')}</code>\n"
+                    f"   MAC: <code>{mac}</code>\n"
                     f"   Status: {d.get('status','')}\n\n")
+        # Tambah ringkasan di bawah
+        total   = len(devices)
+        wl_cnt  = sum(1 for d in devices if d.get("mac","").lower() in wl)
+        blk_cnt = sum(1 for d in devices if d.get("mac","").lower() in blocked)
+        unk_cnt = total - wl_cnt - blk_cnt
+        out += f"<i>Total: {total} | ✅ {wl_cnt} | 🚫 {blk_cnt}"
+        if wl:
+            out += f" | ❔ {unk_cnt}"
+        out += "</i>"
         return out
     except Exception as e:
         return f"Error: {str(e)}"
