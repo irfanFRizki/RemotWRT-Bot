@@ -319,17 +319,40 @@ def get_device_manage_keyboard() -> InlineKeyboardMarkup:
     """Keyboard utama manajemen device"""
     cfg = load_config()
     notify = cfg.get("notify_unknown_device", True)
-    wl = cfg.get("mac_whitelist", [])
-    return InlineKeyboardMarkup([
+    wl     = cfg.get("mac_whitelist", [])
+    blocked = get_blocked_macs()
+    kb = [
         [InlineKeyboardButton("👥 Device Online (Pilih Aksi)", callback_data="online_users_manage")],
         [InlineKeyboardButton(
             f"{'🔔 Nonaktifkan' if notify else '🔕 Aktifkan'} Deteksi Asing",
             callback_data="toggle_notify_unknown_device"
         )],
-        [InlineKeyboardButton("🗑 Hapus Semua Whitelist", callback_data="clear_whitelist"),
-         InlineKeyboardButton("🔓 Unblokir Semua", callback_data="unblock_all")],
-        [InlineKeyboardButton(t("back_menu"), callback_data="back_to_menu")]
-    ])
+    ]
+    if wl:
+        kb.append([InlineKeyboardButton(f"📋 Hapus dari Whitelist ({len(wl)})", callback_data="manage_whitelist_del")])
+    if blocked:
+        kb.append([InlineKeyboardButton(f"🔓 Pilih Unblokir ({len(blocked)})", callback_data="manage_unblock_select")])
+    kb.append([InlineKeyboardButton(t("back_menu"), callback_data="back_to_menu")])
+    return InlineKeyboardMarkup(kb)
+
+def get_whitelist_del_keyboard() -> InlineKeyboardMarkup:
+    """Pilih MAC yang akan dihapus dari whitelist"""
+    cfg = load_config()
+    wl  = cfg.get("mac_whitelist", [])
+    kb  = []
+    for mac in wl:
+        kb.append([InlineKeyboardButton(f"🗑 Hapus: {mac}", callback_data=f"wl_del_{mac}")])
+    kb.append([InlineKeyboardButton("🔙 Kembali", callback_data="block_menu")])
+    return InlineKeyboardMarkup(kb)
+
+def get_unblock_select_keyboard() -> InlineKeyboardMarkup:
+    """Pilih MAC yang akan di-unblokir"""
+    blocked = get_blocked_macs()
+    kb = []
+    for mac in blocked:
+        kb.append([InlineKeyboardButton(f"🔓 Unblokir: {mac}", callback_data=f"sel_unblock_{mac}")])
+    kb.append([InlineKeyboardButton("🔙 Kembali", callback_data="block_menu")])
+    return InlineKeyboardMarkup(kb)
 
 
 def format_bytes(b: int) -> str:
@@ -392,28 +415,54 @@ def get_current_devices() -> list:
         return []
 
 def block_mac(mac: str) -> bool:
+    """Blokir MAC — simpan ke UCI (persistent) + iptables (aktif sekarang)"""
     mac = mac.lower().strip()
-    run_command(f"iptables -I FORWARD -m mac --mac-source {mac} -j DROP")
-    name = "Block_" + mac.replace(':','')
-    run_command(f"uci add firewall rule; uci set firewall.@rule[-1].name='{name}'; "
-                f"uci set firewall.@rule[-1].src='lan'; uci set firewall.@rule[-1].dest='wan'; "
-                f"uci set firewall.@rule[-1].src_mac='{mac}'; uci set firewall.@rule[-1].target='REJECT'; "
-                f"uci commit firewall")
+    # 1. Simpan ke UCI remotbot.blocked_macs (persistent)
+    run_command(f"uci add_list remotbot.main.blocked_macs=\'{mac}\'")
+    run_command("uci commit remotbot")
+    # 2. Blokir via iptables sekarang
+    run_command(f"iptables -I FORWARD -m mac --mac-source {mac} -j DROP 2>/dev/null")
+    # 3. Blokir via firewall OpenWrt (persistent reboot)
+    name = "Block_" + mac.replace(":","")
+    run_command(
+        f"uci batch << EOF\n"
+        f"add firewall rule\n"
+        f"set firewall.@rule[-1].name=\'{name}\'\n"
+        f"set firewall.@rule[-1].src=\'lan\'\n"
+        f"set firewall.@rule[-1].dest=\'wan\'\n"
+        f"set firewall.@rule[-1].src_mac=\'{mac}\'\n"
+        f"set firewall.@rule[-1].target=\'REJECT\'\n"
+        f"commit firewall\n"
+        f"EOF"
+    )
     return True
 
 def unblock_mac(mac: str) -> bool:
+    """Hapus blokir MAC dari UCI + iptables"""
     mac = mac.lower().strip()
+    # 1. Hapus dari UCI remotbot
+    macs = get_blocked_macs()
+    run_command("uci delete remotbot.main.blocked_macs 2>/dev/null")
+    for m in macs:
+        if m != mac:
+            run_command(f"uci add_list remotbot.main.blocked_macs=\'{m}\'")
+    run_command("uci commit remotbot")
+    # 2. Hapus dari iptables
     run_command(f"iptables -D FORWARD -m mac --mac-source {mac} -j DROP 2>/dev/null")
-    name = "Block_" + mac.replace(':','')
-    run_command(f"idx=$(uci show firewall | grep \"{name}\" | head -1 | cut -d. -f1-2); "
-                f"[ -n \"$idx\" ] && uci delete $idx; uci commit firewall 2>/dev/null")
+    # 3. Hapus dari firewall UCI
+    name = "Block_" + mac.replace(":","")
+    run_command(
+        f"idx=$(uci show firewall 2>/dev/null | grep \"{name}\" | head -1 | cut -d. -f1-2); "
+        f"[ -n \"$idx\" ] && uci delete $idx && uci commit firewall 2>/dev/null || true"
+    )
     return True
 
 def get_blocked_macs() -> list:
-    r = run_command("iptables -L FORWARD -n | grep MAC | awk '{print $NF}' | sed 's/MAC=//'")
-    if r and "Error" not in r:
-        return [m.strip().lower() for m in r.split('\n') if m.strip()]
-    return []
+    """Ambil daftar MAC yang diblokir dari UCI (persistent)"""
+    raw = uci_get("remotbot.main.blocked_macs", "")
+    if not raw:
+        return []
+    return [m.strip().lower() for m in raw.replace(",", " ").split() if m.strip()]
 
 def add_to_whitelist(mac: str) -> bool:
     mac = mac.lower().strip()
@@ -807,7 +856,8 @@ async def monitor_loop(app):
                     for dev in get_current_devices():
                         mac = dev.get("mac","").lower()
                         if not mac: continue
-                        if mac not in wl and mac not in monitor_state["alerted_macs"]:
+                        blocked = get_blocked_macs()
+                        if mac not in wl and mac not in blocked and mac not in monitor_state["alerted_macs"]:
                             monitor_state["alerted_macs"].add(mac)
                             ip = dev.get("ip","?"); hn = dev.get("hostname","?")
                             kb = InlineKeyboardMarkup([[
