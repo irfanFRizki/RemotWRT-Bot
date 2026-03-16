@@ -10,39 +10,93 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Get version & changelog
+        id: info
+        run: |
+          # Versi dari build script
+          VERSION=$(grep 'VERSION="${1:-' scripts/build-ipk.sh | head -1 | sed 's/.*:-//' | sed 's/}"//')
+          RELEASE="1"
+          SHORT_SHA=$(echo "${{ github.sha }}" | cut -c1-7)
+          DATE=$(date '+%Y-%m-%d')
+          BUILD_NUM="${{ github.run_number }}"
+          BRANCH="${{ github.ref_name }}"
+
+          echo "VERSION=$VERSION"      >> $GITHUB_OUTPUT
+          echo "RELEASE=$RELEASE"      >> $GITHUB_OUTPUT
+          echo "SHORT_SHA=$SHORT_SHA"  >> $GITHUB_OUTPUT
+          echo "DATE=$DATE"            >> $GITHUB_OUTPUT
+          echo "BUILD_NUM=$BUILD_NUM"  >> $GITHUB_OUTPUT
+          echo "BRANCH=$BRANCH"        >> $GITHUB_OUTPUT
+          echo "TAG=v${VERSION}-${BUILD_NUM}" >> $GITHUB_OUTPUT
+
+          # Ambil 5 commit terakhir untuk changelog
+          git log --pretty=format:"* %s" -5 > /tmp/changelog.txt
+          cat /tmp/changelog.txt
+          echo "CHANGELOG<<ENDOFCHANGELOG" >> $GITHUB_OUTPUT
+          cat /tmp/changelog.txt           >> $GITHUB_OUTPUT
+          echo "ENDOFCHANGELOG"            >> $GITHUB_OUTPUT
 
       - name: Build IPK
         run: |
           chmod +x scripts/build-ipk.sh
-          bash scripts/build-ipk.sh 1.0.0
+          bash scripts/build-ipk.sh ${{ steps.info.outputs.VERSION }}
 
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: remotbot-ipk
+          name: remotbot-ipk-${{ steps.info.outputs.VERSION }}-build${{ steps.info.outputs.BUILD_NUM }}
           path: dist/*.ipk
           retention-days: 30
 
       - name: Create Release
-        if: github.event_name == 'push'
         uses: softprops/action-gh-release@v1
         with:
-          tag_name: v1.0.0-${{ github.run_number }}
-          name: RemotWRT Bot v1.0.0 (build ${{ github.run_number }})
+          tag_name: ${{ steps.info.outputs.TAG }}
+          name: "RemotWRT Bot v${{ steps.info.outputs.VERSION }} (${{ steps.info.outputs.DATE }}) Latest"
           files: dist/*.ipk
           body: |
-            ## Install di OpenWrt
+            ## v${{ steps.info.outputs.VERSION }} — ${{ steps.info.outputs.DATE }}
+
+            ### Perubahan
+            ${{ steps.info.outputs.CHANGELOG }}
+
+            ### Info Build
+            * Commit: `${{ github.sha }}`
+            * Branch: `${{ steps.info.outputs.BRANCH }}`
+            * Build: `#${{ steps.info.outputs.BUILD_NUM }}`
+
+            ### Cara Install
 
             ```sh
+            # 1. Download IPK
             cd /tmp
-            wget <URL_remotbot_*.ipk>
-            wget <URL_luci-app-remotbot_*.ipk>
+            wget https://github.com/irfanFRizki/RemotWRT-Bot/releases/download/${{ steps.info.outputs.TAG }}/remotbot_${{ steps.info.outputs.VERSION }}-1_aarch64_cortex-a72.ipk
+            wget https://github.com/irfanFRizki/RemotWRT-Bot/releases/download/${{ steps.info.outputs.TAG }}/luci-app-remotbot_${{ steps.info.outputs.VERSION }}-1_aarch64_cortex-a72.ipk
+
+            # 2. Uninstall lama
             opkg remove remotbot luci-app-remotbot 2>/dev/null
+
+            # 3. Install baru
             opkg install remotbot_*.ipk --nodeps
             opkg install luci-app-remotbot_*.ipk
+
+            # 4. Bersihkan cache LuCI
             rm -rf /tmp/luci-indexcache /tmp/luci-modulecache/
             ```
 
-            Setelah install: **LuCI → Services → Remot Bot → Settings**
+            ### Konfigurasi Awal
+
+            ```sh
+            uci set remotbot.main.bot_token='TOKEN_DARI_BOTFATHER'
+            uci set remotbot.main.allowed_users='USER_ID_TELEGRAM'
+            uci set remotbot.main.enabled='1'
+            uci commit remotbot
+            /etc/init.d/remotbot start
+            ```
+
+            > Atau lewat **LuCI → Services → Remot Bot → Settings**
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
