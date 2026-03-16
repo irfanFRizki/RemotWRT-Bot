@@ -1,0 +1,64 @@
+#!/bin/sh
+# CGI script: daftar perangkat online dari DHCP leases
+# Path: /www/cgi-bin/online
+
+echo "Content-Type: application/json"
+echo "Access-Control-Allow-Origin: *"
+echo ""
+
+LEASES_FILE="/tmp/dhcp.leases"
+NEIGH_FILE=$(ip neigh show 2>/dev/null)
+
+if [ ! -f "$LEASES_FILE" ]; then
+    echo "[]"
+    exit 0
+fi
+
+get_priority() {
+    case "$1" in
+        "TERHUBUNG")             echo 1 ;;
+        "TERHUBUNG TIDAK AKTIF") echo 2 ;;
+        "TIDAK DIKETAHUI")       echo 3 ;;
+        "TIDAK TERHUBUNG")       echo 4 ;;
+        *)                       echo 5 ;;
+    esac
+}
+
+TEMP=$(mktemp)
+
+while IFS= read -r line; do
+    [ -z "$line" ] && continue
+    IP=$(echo "$line" | awk '{print $3}')
+    MAC=$(echo "$line" | awk '{print $2}')
+    HOSTNAME=$(echo "$line" | awk '{print $4}')
+    [ "$HOSTNAME" = "*" ] && HOSTNAME="Unknown"
+    [ -z "$HOSTNAME" ]    && HOSTNAME="Unknown"
+
+    STATUS="TIDAK TERHUBUNG"
+    if echo "$NEIGH_FILE" | grep -q "^$IP "; then
+        STATE=$(echo "$NEIGH_FILE" | grep "^$IP " | awk '{print $NF}' | tr '[:lower:]' '[:upper:]')
+        case "$STATE" in
+            "REACHABLE") STATUS="TERHUBUNG" ;;
+            "STALE")     STATUS="TERHUBUNG TIDAK AKTIF" ;;
+            "FAILED")    STATUS="TIDAK TERHUBUNG" ;;
+            *)           STATUS="TIDAK DIKETAHUI" ;;
+        esac
+    fi
+
+    PRIORITY=$(get_priority "$STATUS")
+    HOSTNAME_ESC=$(echo "$HOSTNAME" | sed 's/\\/\\\\/g; s/"/\\"/g')
+    printf '%s|%s|%s|%s|%s\n' "$PRIORITY" "$IP" "$MAC" "$HOSTNAME_ESC" "$STATUS" >> "$TEMP"
+done < "$LEASES_FILE"
+
+echo "["
+first=1
+sort -t'|' -k1,1n "$TEMP" | while IFS='|' read -r pri ip mac hostname status; do
+    [ "$first" = "0" ] && printf ','
+    printf '{"ip":"%s","mac":"%s","hostname":"%s","status":"%s"}' \
+        "$ip" "$mac" "$hostname" "$status"
+    first=0
+done
+echo ""
+echo "]"
+
+rm -f "$TEMP"
