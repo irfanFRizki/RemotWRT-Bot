@@ -2,7 +2,7 @@
 # build-ipk.sh — Build IPK OpenWrt (gzip tar format)
 set -e
 
-VERSION="${1:-1.0.1}"
+VERSION="${1:-1.0.2}"
 RELEASE="1"
 ARCH="aarch64_cortex-a72"
 BUILD_DIR="$(pwd)/.build"

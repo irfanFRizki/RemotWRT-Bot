@@ -230,6 +230,108 @@ def run_command(command: str, timeout: int = 30) -> str:
     except Exception as e:
         return f"Error: {str(e)}"
 
+def get_online_with_actions() -> str:
+    """Tampilkan device online dengan tombol aksi blokir/whitelist"""
+    devices = get_current_devices()
+    if not devices:
+        return "👥 <b>Online Users</b>\n\nTidak ada perangkat online"
+    em = {"TERHUBUNG":"🟢","TERHUBUNG TIDAK AKTIF":"🟡","TIDAK DIKETAHUI":"🟠","TIDAK TERHUBUNG":"🔴"}
+    out = "👥 <b>Online Users</b>\n<i>Pilih device untuk blokir atau tambah whitelist:</i>\n\n"
+    for i, d in enumerate(devices, 1):
+        hn = d.get("hostname","*") if d.get("hostname","*") != "*" else "Unknown"
+        out += (f"{i}. {em.get(d.get('status',''),'⚪')} <b>{hn}</b>\n"
+                f"   IP: <code>{d.get('ip','')}</code>\n"
+                f"   MAC: <code>{d.get('mac','')}</code>\n\n")
+    return out
+
+def get_online_actions_keyboard() -> InlineKeyboardMarkup:
+    """Keyboard dengan tombol aksi per device"""
+    cfg = load_config()
+    devices = get_current_devices()
+    wl = [m.lower() for m in cfg.get("mac_whitelist", [])]
+    blocked = [m.lower() for m in get_blocked_macs()]
+    kb = []
+    for d in devices:
+        mac = d.get("mac","").lower()
+        ip  = d.get("ip","")
+        hn  = d.get("hostname","Unknown")
+        if hn == "*": hn = "Unknown"
+        # Baris nama device
+        kb.append([InlineKeyboardButton(
+            f"{'✅' if mac in wl else '🚫' if mac in blocked else '❔'} {hn} ({ip})",
+            callback_data=f"dev_detail_{mac}_{ip}"
+        )])
+        # Baris tombol aksi
+        row = []
+        if mac not in wl:
+            row.append(InlineKeyboardButton("✅ Whitelist", callback_data=f"dev_whitelist_{mac}"))
+        if mac not in blocked:
+            row.append(InlineKeyboardButton("🚫 Blokir", callback_data=f"dev_block_{mac}_{ip}"))
+        else:
+            row.append(InlineKeyboardButton("🔓 Unblokir", callback_data=f"dev_unblock_{mac}"))
+        if row:
+            kb.append(row)
+    kb.append([
+        InlineKeyboardButton("🔄 Refresh", callback_data="online_users_manage"),
+        InlineKeyboardButton(t("back_menu"), callback_data="back_to_menu")
+    ])
+    return InlineKeyboardMarkup(kb)
+
+def get_whitelist_status() -> str:
+    """Tampilkan status whitelist dan cara mengaktifkan fitur"""
+    cfg = load_config()
+    wl = cfg.get("mac_whitelist", [])
+    blocked = get_blocked_macs()
+    notify = cfg.get("notify_unknown_device", True)
+
+    out = "🛡 <b>Manajemen Device</b>\n\n"
+
+    # Status fitur
+    if not notify:
+        out += "⚠️ <b>Fitur deteksi device asing: NONAKTIF</b>\n"
+        out += "Aktifkan di Settings atau ketuk tombol di bawah\n\n"
+    elif not wl:
+        out += "⚠️ <b>Whitelist kosong — fitur belum aktif!</b>\n"
+        out += "Tambahkan device tepercaya ke whitelist\n"
+        out += "supaya device asing bisa terdeteksi.\n\n"
+    else:
+        out += "✅ <b>Fitur deteksi device asing: AKTIF</b>\n\n"
+
+    out += f"📋 <b>Whitelist:</b> <code>{len(wl)}</code> MAC\n"
+    if wl:
+        for mac in wl[:10]:
+            out += f"  ✅ <code>{mac}</code>\n"
+        if len(wl) > 10:
+            out += f"  ... dan {len(wl)-10} lainnya\n"
+
+    out += f"\n🚫 <b>Diblokir:</b> <code>{len(blocked)}</code> MAC\n"
+    if blocked:
+        for mac in blocked[:5]:
+            out += f"  🔴 <code>{mac}</code>\n"
+
+    out += ("\n💡 <b>Cara pakai:</b>\n"
+            "1. Buka <b>Device Online</b> → pilih device tepercaya → <b>✅ Whitelist</b>\n"
+            "2. Semua device baru yang tidak ada di whitelist akan dikirim alert\n"
+            "3. Dari alert bisa langsung blokir atau izinkan\n")
+    return out
+
+def get_device_manage_keyboard() -> InlineKeyboardMarkup:
+    """Keyboard utama manajemen device"""
+    cfg = load_config()
+    notify = cfg.get("notify_unknown_device", True)
+    wl = cfg.get("mac_whitelist", [])
+    return InlineKeyboardMarkup([
+        [InlineKeyboardButton("👥 Device Online (Pilih Aksi)", callback_data="online_users_manage")],
+        [InlineKeyboardButton(
+            f"{'🔔 Nonaktifkan' if notify else '🔕 Aktifkan'} Deteksi Asing",
+            callback_data="toggle_notify_unknown_device"
+        )],
+        [InlineKeyboardButton("🗑 Hapus Semua Whitelist", callback_data="clear_whitelist"),
+         InlineKeyboardButton("🔓 Unblokir Semua", callback_data="unblock_all")],
+        [InlineKeyboardButton(t("back_menu"), callback_data="back_to_menu")]
+    ])
+
+
 def format_bytes(b: int) -> str:
     if b < 1024:       return f"{b} B"
     elif b < 1024**2:  return f"{b/1024:.2f} KB"
@@ -604,7 +706,7 @@ def get_main_keyboard(cfg: dict = None) -> InlineKeyboardMarkup:
          InlineKeyboardButton("⚙️ Services",      callback_data="services")],
         [InlineKeyboardButton("🐳 Containers",    callback_data="containers"),
          InlineKeyboardButton("💻 Command",       callback_data="command")],
-        [InlineKeyboardButton("🚫 Blokir Device", callback_data="block_menu"),
+        [InlineKeyboardButton("🛡 Kelola Device", callback_data="block_menu"),
          InlineKeyboardButton("⚙️ Settings",      callback_data="settings")],
     ])
 
@@ -752,7 +854,47 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         cfg2 = load_config()
         await query.edit_message_text(get_settings_text(cfg2), parse_mode='HTML', reply_markup=get_settings_keyboard(cfg2)); return
     if cb == "block_menu":
-        await query.edit_message_text(get_block_menu_text(cfg), parse_mode='HTML', reply_markup=get_block_keyboard(cfg)); return
+        await query.edit_message_text(get_whitelist_status(), parse_mode='HTML', reply_markup=get_device_manage_keyboard()); return
+
+    if cb == "online_users_manage":
+        await query.edit_message_text(get_online_with_actions(), parse_mode='HTML', reply_markup=get_online_actions_keyboard()); return
+
+    if cb.startswith("dev_detail_"):
+        # Abaikan — sudah ditampilkan di list
+        return
+
+    if cb.startswith("dev_whitelist_"):
+        mac = cb[14:]
+        add_to_whitelist(mac)
+        monitor_state["alerted_macs"].discard(mac)
+        cfg2 = load_config()
+        await query.answer(f"✅ {mac} ditambah ke whitelist!")
+        await query.edit_message_text(get_online_with_actions(), parse_mode='HTML', reply_markup=get_online_actions_keyboard()); return
+
+    if cb.startswith("dev_block_"):
+        parts = cb.split("_", 3)
+        mac = parts[2]; ip = parts[3] if len(parts) > 3 else "?"
+        block_mac(mac)
+        monitor_state["alerted_macs"].discard(mac)
+        await query.answer(f"🚫 {mac} diblokir!")
+        await query.edit_message_text(get_online_with_actions(), parse_mode='HTML', reply_markup=get_online_actions_keyboard()); return
+
+    if cb.startswith("dev_unblock_"):
+        mac = cb[12:]
+        unblock_mac(mac)
+        await query.answer(f"🔓 {mac} di-unblokir!")
+        await query.edit_message_text(get_online_with_actions(), parse_mode='HTML', reply_markup=get_online_actions_keyboard()); return
+
+    if cb == "clear_whitelist":
+        run_command("uci delete remotbot.main.mac_whitelist 2>/dev/null; uci commit remotbot")
+        await query.answer("🗑 Whitelist dikosongkan!")
+        await query.edit_message_text(get_whitelist_status(), parse_mode='HTML', reply_markup=get_device_manage_keyboard()); return
+
+    if cb == "unblock_all":
+        for mac in get_blocked_macs():
+            unblock_mac(mac)
+        await query.answer("🔓 Semua device di-unblokir!")
+        await query.edit_message_text(get_whitelist_status(), parse_mode='HTML', reply_markup=get_device_manage_keyboard()); return
     if cb == "show_whitelist":
         wl = cfg.get("mac_whitelist",[])
         text = ("📋 <b>MAC Whitelist:</b>\n\n" + "\n".join(f"✅ <code>{m}</code>" for m in wl) if wl else t("whitelist_empty",cfg))
