@@ -1,7 +1,6 @@
 dist/
-.build/
+*.ipk
 __pycache__/
 *.pyc
-*.pyo
 .DS_Store
-*.log
+/tmp/

@@ -1,0 +1,48 @@
+<%+header%>
+<style>
+.rb-card{background:var(--color-bg-1,#fff);border:1px solid var(--color-border,#dee2e6);border-radius:8px;padding:16px;margin-bottom:16px}
+.rb-badge{display:inline-block;padding:4px 12px;border-radius:12px;font-weight:bold;font-size:14px}
+.rb-run{background:#d4edda;color:#155724}.rb-stop{background:#f8d7da;color:#721c24}
+.rb-btn{display:inline-block;padding:8px 18px;border-radius:5px;border:none;cursor:pointer;font-size:14px;margin:4px;transition:opacity .2s}
+.rb-btn:hover{opacity:.85}.btn-s{background:#28a745;color:#fff}.btn-x{background:#dc3545;color:#fff}.btn-r{background:#fd7e14;color:#fff}.btn-d{background:#17a2b8;color:#fff}
+.chk-ok{color:#28a745}.chk-no{color:#dc3545}
+</style>
+<h2>🤖 Remot Bot — Dashboard</h2>
+<div class="rb-card">
+  <h3>Status Bot</h3>
+  <div id="sc">Memuat...</div>
+  <div style="margin-top:12px">
+    <button class="rb-btn btn-s" onclick="act('start')">▶ Start</button>
+    <button class="rb-btn btn-x" onclick="act('stop')">⏹ Stop</button>
+    <button class="rb-btn btn-r" onclick="act('restart')">🔄 Restart</button>
+    <button class="rb-btn btn-d" onclick="instDeps()">📦 Install Dependencies</button>
+  </div>
+  <pre id="log" style="display:none;background:#1e1e1e;color:#0f0;padding:10px;border-radius:6px;font-size:12px;max-height:180px;overflow-y:auto;margin-top:10px"></pre>
+</div>
+<div class="rb-card">
+  <h3>⚙️ Quick Link</h3>
+  <p><a href="<%=luci.dispatcher.build_url('admin','services','remotbot','settings')%>">⚙️ Buka Settings (Bot Token & User ID)</a></p>
+  <p style="font-size:13px;color:#666">Dapatkan Bot Token dari <b>@BotFather</b> · User ID dari <b>@userinfobot</b></p>
+</div>
+<script>
+var B='<%=luci.dispatcher.build_url("admin","services","remotbot","api")%>';
+function chk(ok,label){return'<div><span style="margin-right:6px" class="'+(ok?'chk-ok':'chk-no')+'">'+(ok?'✅':'❌')+'</span>'+label+'</div>'}
+function load(){
+  fetch(B+'/status').then(r=>r.json()).then(d=>{
+    var h=(d.running?'<span class="rb-badge rb-run">🟢 RUNNING</span>':'<span class="rb-badge rb-stop">🔴 STOPPED</span>')+(d.pid?' <small>PID: '+d.pid+'</small>':'');
+    h+='<div style="margin-top:10px">'+chk(d.token_set,'Bot Token dikonfigurasi')+chk(d.deps_ok,'Python dependencies terinstall')+'</div>';
+    if(!d.deps_ok)h+='<p style="color:#dc3545;margin-top:8px">⚠️ Klik <b>Install Dependencies</b> untuk install otomatis.</p>';
+    if(!d.token_set)h+='<p style="color:#fd7e14;margin-top:4px">⚠️ <a href="<%=luci.dispatcher.build_url("admin","services","remotbot","settings")%>">Buka Settings</a> untuk mengisi Bot Token.</p>';
+    document.getElementById('sc').innerHTML=h;
+  }).catch(()=>{document.getElementById('sc').innerHTML='<p style="color:red">Error memuat status</p>'});
+}
+function act(a){fetch(B+'/'+a).then(()=>setTimeout(load,1500))}
+function instDeps(){
+  var log=document.getElementById('log'); log.style.display='block'; log.textContent='Installing...\n';
+  fetch(B+'/install_deps').then(()=>{
+    setTimeout(()=>{log.textContent+='Berjalan di background.\nCek /tmp/remotbot-install.log untuk detail.';setTimeout(load,5000)},2000);
+  });
+}
+load(); setInterval(load,10000);
+</script>
+<%+footer%>
