@@ -16,28 +16,22 @@ jobs:
       - name: Get version & changelog
         id: info
         run: |
-          # Versi dari build script
           VERSION=$(grep 'VERSION="${1:-' scripts/build-ipk.sh | head -1 | sed 's/.*:-//' | sed 's/}"//')
-          RELEASE="1"
-          SHORT_SHA=$(echo "${{ github.sha }}" | cut -c1-7)
+          SHORT_SHA=$(echo "$GITHUB_SHA" | cut -c1-7)
           DATE=$(date '+%Y-%m-%d')
-          BUILD_NUM="${{ github.run_number }}"
-          BRANCH="${{ github.ref_name }}"
 
-          echo "VERSION=$VERSION"      >> $GITHUB_OUTPUT
-          echo "RELEASE=$RELEASE"      >> $GITHUB_OUTPUT
-          echo "SHORT_SHA=$SHORT_SHA"  >> $GITHUB_OUTPUT
-          echo "DATE=$DATE"            >> $GITHUB_OUTPUT
-          echo "BUILD_NUM=$BUILD_NUM"  >> $GITHUB_OUTPUT
-          echo "BRANCH=$BRANCH"        >> $GITHUB_OUTPUT
-          echo "TAG=v${VERSION}-${BUILD_NUM}" >> $GITHUB_OUTPUT
+          echo "VERSION=$VERSION"     >> "$GITHUB_OUTPUT"
+          echo "SHORT_SHA=$SHORT_SHA" >> "$GITHUB_OUTPUT"
+          echo "DATE=$DATE"           >> "$GITHUB_OUTPUT"
+          echo "TAG=v${VERSION}-${{ github.run_number }}" >> "$GITHUB_OUTPUT"
 
-          # Ambil 5 commit terakhir untuk changelog
-          git log --pretty=format:"* %s" -5 > /tmp/changelog.txt
-          cat /tmp/changelog.txt
-          echo "CHANGELOG<<ENDOFCHANGELOG" >> $GITHUB_OUTPUT
-          cat /tmp/changelog.txt           >> $GITHUB_OUTPUT
-          echo "ENDOFCHANGELOG"            >> $GITHUB_OUTPUT
+          # Changelog — pakai delimiter EOF unik (bukan ENDOFCHANGELOG)
+          {
+            echo "CHANGELOG<<EOF_CHANGELOG_DELIMITER"
+            git log --pretty=format:"- %s" -5
+            echo ""
+            echo "EOF_CHANGELOG_DELIMITER"
+          } >> "$GITHUB_OUTPUT"
 
       - name: Build IPK
         run: |
@@ -47,7 +41,7 @@ jobs:
       - name: Upload Artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: remotbot-ipk-${{ steps.info.outputs.VERSION }}-build${{ steps.info.outputs.BUILD_NUM }}
+          name: remotbot-ipk-${{ steps.info.outputs.VERSION }}-build${{ github.run_number }}
           path: dist/*.ipk
           retention-days: 30
 
@@ -64,26 +58,21 @@ jobs:
             ${{ steps.info.outputs.CHANGELOG }}
 
             ### Info Build
-            * Commit: `${{ github.sha }}`
-            * Branch: `${{ steps.info.outputs.BRANCH }}`
-            * Build: `#${{ steps.info.outputs.BUILD_NUM }}`
+            - Commit: `${{ github.sha }}`
+            - Branch: `${{ github.ref_name }}`
+            - Build: `#${{ github.run_number }}`
 
             ### Cara Install
 
             ```sh
-            # 1. Download IPK
             cd /tmp
-            wget https://github.com/irfanFRizki/RemotWRT-Bot/releases/download/${{ steps.info.outputs.TAG }}/remotbot_${{ steps.info.outputs.VERSION }}-1_aarch64_cortex-a72.ipk
-            wget https://github.com/irfanFRizki/RemotWRT-Bot/releases/download/${{ steps.info.outputs.TAG }}/luci-app-remotbot_${{ steps.info.outputs.VERSION }}-1_aarch64_cortex-a72.ipk
 
-            # 2. Uninstall lama
+            wget https://github.com/${{ github.repository }}/releases/download/${{ steps.info.outputs.TAG }}/remotbot_${{ steps.info.outputs.VERSION }}-1_aarch64_cortex-a72.ipk
+            wget https://github.com/${{ github.repository }}/releases/download/${{ steps.info.outputs.TAG }}/luci-app-remotbot_${{ steps.info.outputs.VERSION }}-1_aarch64_cortex-a72.ipk
+
             opkg remove remotbot luci-app-remotbot 2>/dev/null
-
-            # 3. Install baru
             opkg install remotbot_*.ipk --nodeps
             opkg install luci-app-remotbot_*.ipk
-
-            # 4. Bersihkan cache LuCI
             rm -rf /tmp/luci-indexcache /tmp/luci-modulecache/
             ```
 
