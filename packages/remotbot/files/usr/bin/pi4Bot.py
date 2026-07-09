@@ -24,6 +24,7 @@ import logging
 import subprocess
 import json
 import time
+import os
 import requests
 from datetime import datetime
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, ReplyKeyboardMarkup, KeyboardButton
@@ -478,6 +479,78 @@ def add_to_whitelist(mac: str) -> bool:
     mac = mac.lower().strip()
     run_command(f"uci add_list remotbot.main.mac_whitelist='{mac}'")
     run_command("uci commit remotbot")
+    return True
+
+# ==================== OPENNDS FAS PENDING FILE HELPERS ====================
+
+def load_nds_pending() -> dict:
+    """
+    Load status pending dari file JSON shared (SAMA dengan fas_server.py)
+    Format: {mac: {"status": "pending|approved|blocked", "ip": "...", "hostname": "...", "timestamp": ...}}
+    Pakai atomic read untuk safety
+    """
+    cfg = load_config()
+    path = cfg.get("fas_pending_file", "/tmp/opennds_pending.json")
+    try:
+        if os.path.exists(path):
+            with open(path, 'r') as f:
+                data = json.load(f)
+                return data if isinstance(data, dict) else {}
+    except Exception as e:
+        logger.error(f"Error loading NDS pending file: {e}")
+    return {}
+
+def save_nds_pending(data: dict) -> bool:
+    """
+    Simpan status pending ke file JSON dengan atomic write (SAMA dengan fas_server.py)
+    Pakai os.replace biar aman dibaca 2 proses
+    """
+    cfg = load_config()
+    path = cfg.get("fas_pending_file", "/tmp/opennds_pending.json")
+    tmp_path = path + ".tmp"
+    try:
+        with open(tmp_path, 'w') as f:
+            json.dump(data, f, indent=2)
+        os.replace(tmp_path, path)
+        return True
+    except Exception as e:
+        logger.error(f"Error saving NDS pending file: {e}")
+        if os.path.exists(tmp_path):
+            os.remove(tmp_path)
+        return False
+
+def nds_approve(mac: str) -> bool:
+    """
+    Approve device dari OpenNDS pending list:
+      1. Set status "approved" di pending file (biar FAS server redirect)
+      2. Panggil add_to_whitelist() yang sudah ada (biar next time auto-approve)
+    """
+    mac = mac.lower().strip()
+    # 1. Update pending file
+    pending = load_nds_pending()
+    if mac in pending:
+        pending[mac]["status"] = "approved"
+        save_nds_pending(pending)
+        logger.info(f"NDS approve: {mac} set to approved")
+    # 2. Add to whitelist (persistent)
+    add_to_whitelist(mac)
+    return True
+
+def nds_block(mac: str) -> bool:
+    """
+    Block device dari OpenNDS pending list:
+      1. Set status "blocked" di pending file (biar FAS server show denied page)
+      2. Panggil block_mac() yang sudah ada (biar konsisten dengan sistem block existing)
+    """
+    mac = mac.lower().strip()
+    # 1. Update pending file
+    pending = load_nds_pending()
+    if mac in pending:
+        pending[mac]["status"] = "blocked"
+        save_nds_pending(pending)
+        logger.info(f"NDS block: {mac} set to blocked")
+    # 2. Block MAC (persistent + iptables)
+    block_mac(mac)
     return True
 
 # ==================== MONITORING FUNCTIONS ====================
@@ -993,6 +1066,32 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
         mac = cb[12:]; add_to_whitelist(mac); monitor_state["alerted_macs"].discard(mac)
         await query.edit_message_text(t("device_allowed",cfg,mac=mac), parse_mode='HTML',
             reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(t("back_menu",cfg),callback_data="back_to_menu")]])); return
+    
+    # OpenNDS FAS approval/block callbacks
+    if cb.startswith("ndsok_"):
+        mac = cb[6:]  # Extract MAC after "ndsok_"
+        nds_approve(mac)
+        lang = cfg.get("language", "id")
+        if lang == "en":
+            msg = f"✅ <b>Device Approved!</b>\n\nMAC: <code>{mac}</code>\nDevice can now access the internet."
+        else:
+            msg = f"✅ <b>Perangkat Disetujui!</b>\n\nMAC: <code>{mac}</code>\nPerangkat sekarang dapat mengakses internet."
+        await query.edit_message_text(msg, parse_mode='HTML',
+            reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(t("back_menu",cfg),callback_data="back_to_menu")]]))
+        return
+    
+    if cb.startswith("ndsno_"):
+        mac = cb[6:]  # Extract MAC after "ndsno_"
+        nds_block(mac)
+        lang = cfg.get("language", "id")
+        if lang == "en":
+            msg = f"🚫 <b>Device Blocked!</b>\n\nMAC: <code>{mac}</code>\nAccess denied."
+        else:
+            msg = f"🚫 <b>Perangkat Diblokir!</b>\n\nMAC: <code>{mac}</code>\nAkses ditolak."
+        await query.edit_message_text(msg, parse_mode='HTML',
+            reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(t("back_menu",cfg),callback_data="back_to_menu")]]))
+        return
+    
     if cb == "service_control":
         await query.edit_message_text("🔧 <b>SERVICE CONTROL</b>\n\nPilih service:",
             parse_mode='HTML', reply_markup=get_service_control_keyboard(cfg)); return
