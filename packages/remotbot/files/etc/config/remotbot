@@ -14,3 +14,8 @@ config remotbot 'main'
 	option notify_unknown_device '1'
 	# list mac_whitelist 'aa:bb:cc:dd:ee:ff'
 	# list blocked_macs 'xx:xx:xx:xx:xx:xx'
+	
+	# OpenNDS FAS configuration
+	option fas_port '2080'
+	option fas_pending_file '/tmp/opennds_pending.json'
+	option fas_notify_ttl '300'

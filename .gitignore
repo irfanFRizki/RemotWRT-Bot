@@ -1,3 +1,45 @@
-Nothing should be ignored in this case, as the only change is a modification to a source code file (.htm) which is part of the project's normal codebase. No build artifacts, dependencies, temporary files, or other ignorable items are present in the changes.
+```
+# OpenWrt/LEDE specific ignores
+*.ipk
+*.tar.gz
+*.tar.xz
+bin/
+build_dir/
+staging_dir/
+toolchain/
+feeds/
+tmp/
 
-Therefore, the .gitignore file should remain empty.
+# Python artifacts
+*.pyc
+__pycache__/
+*.pyo
+*.pyd
+
+# Logs
+*.log
+
+# Environment files
+.env
+.env.local
+*.env.*
+
+# Editor/IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*.tmp
+
+# Build artifacts
+dist/
+build/
+*.o
+*.obj
+*.out
+
+# Dependencies
+node_modules/
+.venv/
+venv/
+```
