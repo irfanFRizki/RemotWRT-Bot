@@ -94,7 +94,33 @@ end
 
 ---
 
+### 1.6 Command Injection di `pi4Bot.py` — Fix Sebelumnya Tidak Lengkap (SELESAI DILENGKAPI)
+**Tanggal temuan tambahan:** 2026-07-10
+
+**Masalah:** Fix command-injection commit `3734a62` **TIDAK LENGKAP** — hanya `block_mac()` yang mendapat guard `is_valid_mac()`. Dua fungsi lain yang juga memasukkan MAC ke shell command masih rentan:
+
+| Fungsi | Sebelum | Setelah |
+|--------|---------|---------|
+| `block_mac()` | ✅ Sudah ter-guard (commit `3734a62`) | ✅ Aman |
+| `unblock_mac()` | ❌ Tidak ada validasi | ✅ Fix ditambahkan |
+| `add_to_whitelist()` | ❌ Tidak ada validasi | ✅ Fix ditambahkan |
+
+**Tambahan — shell quoting bug di `unblock_mac()`:** `$idx` tidak di-quote → diperbaiki ke `"$idx"`.
+
+**Solusi:** Pola validasi identik kini berlaku di ketiga fungsi:
+```python
+mac = mac.lower().strip()
+if not is_valid_mac(mac):
+    logger.error(f"<fungsi>: Invalid MAC format: {mac}")
+    return False
+```
+
+**Audit handler callback:** Semua handler (`dev_whitelist_`, `dev_unblock_`, `dev_block_`, `unblock_`, `quick_block_`, `quick_allow_`, `ndsok_`, `ndsno_`) hanya meneruskan MAC ke ketiga fungsi ter-guard — tidak ada `run_command` inline dengan MAC mentah.
+
+---
+
 ## ✅ 2. Bug Fungsional — Sinkronisasi (SELESAI)
+
 
 ### 2.1 Generate Voucher Code (FIXED)
 **Masalah:** Voucher yang dibuat dari LuCI tidak tersimpan ke config/file.
