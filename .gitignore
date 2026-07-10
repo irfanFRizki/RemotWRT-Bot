@@ -1,21 +1,42 @@
-# Compiled and build artifacts
-*.pyc
-__pycache__/
+```
+# Build artifacts and distributions
+.build/
+dist/
+*.ipk
+*.tar.gz
+*.deb
+*.rpm
+debian-binary
 
-# Dependencies
-.venv/
-venv/
-
-# Logs and temp files
-*.log
+# Temporary and cache files
 *.tmp
+*.log
 *.swp
 
-# Environment
+# Environment files
 .env
 .env.local
-.env.*
+*.env.*
 
-# Editors
-.vscode/
-.idea/
+# Compressed archives
+*.zip
+*.gz
+*.tar
+*.tgz
+*.bz2
+*.xz
+*.7z
+*.rar
+*.zst
+*.lz4
+*.lzh
+*.cab
+*.arj
+*.Z
+*.lz
+*.lzo
+*.tar.gz
+*.tar.bz2
+*.tar.xz
+*.tar.zst
+```

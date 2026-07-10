@@ -1,0 +1,33 @@
+<%#
+    Template for custom voucher add/remove operations
+    Used by luci-app-remotwrt vouchers.lua
+-%>
+<%+cbi/valueheader%>
+<%
+    local fs = require "nixio.fs"
+    local uci = require "luci.model.uci".cursor()
+    
+    -- Get section name
+    local section = self.section
+    local sid = section:cfgvalue(section.anonymous and "" or section.section)
+    
+    -- Check if this is a new section (add mode) or existing (edit mode)
+    local is_new = not sid or sid == ""
+    
+    -- Generate CSRF token
+    local token = luci.dispatcher.token()
+%>
+
+<div class="cbi-value-field">
+    <% if not is_new then %>
+        <button class="cbi-button cbi-button-remove" name="cbi.rts.<%=self.section%>.<%=section.section%>" value="1" onclick="return confirm('<%=translate("Are you sure you want to delete this voucher?")%>')">
+            <%=translate("Delete")%>
+        </button>
+    <% end %>
+    
+    <button class="cbi-button cbi-button-save" name="cbi.cts.<%=self.section%>.<%=section.section%>" value="1" onclick="return true">
+        <%=is_new and translate("Add") or translate("Save")%>
+    </button>
+</div>
+
+<%+cbi/valuefooter%>
