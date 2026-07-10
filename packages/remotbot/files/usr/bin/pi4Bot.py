@@ -565,6 +565,9 @@ def block_mac(mac: str) -> bool:
 def unblock_mac(mac: str) -> bool:
     """Hapus blokir MAC dari UCI + iptables"""
     mac = mac.lower().strip()
+    if not is_valid_mac(mac):
+        logger.error(f"unblock_mac: Invalid MAC format: {mac}")
+        return False
     # 1. Hapus dari UCI remotbot
     macs = get_blocked_macs()
     run_command("uci delete remotbot.main.blocked_macs 2>/dev/null")
@@ -578,7 +581,7 @@ def unblock_mac(mac: str) -> bool:
     name = "Block_" + mac.replace(":","")
     run_command(
         f"idx=$(uci show firewall 2>/dev/null | grep \"{name}\" | head -1 | cut -d. -f1-2); "
-        f"[ -n \"$idx\" ] && uci delete $idx && uci commit firewall 2>/dev/null || true"
+        f"[ -n \"$idx\" ] && uci delete \"$idx\" && uci commit firewall 2>/dev/null || true"
     )
     return True
 
@@ -591,6 +594,9 @@ def get_blocked_macs() -> list:
 
 def add_to_whitelist(mac: str) -> bool:
     mac = mac.lower().strip()
+    if not is_valid_mac(mac):
+        logger.error(f"add_to_whitelist: Invalid MAC format: {mac}")
+        return False
     run_command(f"uci add_list remotbot.main.mac_whitelist='{mac}'")
     run_command("uci commit remotbot")
     return True
