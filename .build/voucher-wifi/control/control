@@ -1,0 +1,9 @@
+Package: voucher-wifi
+Version: 1.0.5-1
+Architecture: aarch64_cortex-a72
+Maintainer: RemotWRT <https://github.com/irfanFRizki/RemotWRT-Bot>
+Depends: opennds, lua, libuci-lua
+Section: net
+Priority: optional
+Installed-Size: 68
+Description: WiFi Voucher Authentication System with OpenNDS integration

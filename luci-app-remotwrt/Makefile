@@ -11,7 +11,7 @@ LUCI_DEPENDS:=+opennds +luci-base +rpcd +uhttpd
 LUCI_PKGARCH:=all
 
 PKG_NAME:=luci-app-remotwrt
-PKG_VERSION:=1.0.0
+PKG_VERSION:=1.0.5
 PKG_RELEASE:=1
 
 include $(TOPDIR)/feeds/luci/luci.mk
