@@ -47,6 +47,10 @@ define Package/voucher-wifi/install
 	# Install script autentikasi
 	$(INSTALL_BIN) ./files/usr/bin/voucher_auth.sh $(1)/usr/bin/voucher_auth.sh
 	
+	# Install helper scripts
+	$(INSTALL_BIN) ./files/usr/bin/remotwrt_firewall_helper.sh $(1)/usr/bin/remotwrt_firewall_helper.sh
+	$(INSTALL_BIN) ./files/usr/bin/remotwrt_session_cleanup.sh $(1)/usr/bin/remotwrt_session_cleanup.sh
+	
 	# Install konfigurasi default
 	$(INSTALL_CONF) ./files/etc/config/opennds $(1)/etc/config/opennds.default
 	

@@ -86,6 +86,20 @@ def load_config() -> dict:
     mac_str = uci_get("remotbot.main.mac_whitelist", "")
     mac_whitelist = [m.strip().lower() for m in mac_str.replace(",", " ").split() if m.strip()]
 
+    # Load from remotwrt firewall whitelist too
+    try:
+        r = subprocess.run(["uci", "show", "remotwrt"], capture_output=True, text=True, timeout=5)
+        if r.returncode == 0:
+            for line in r.stdout.split("\n"):
+                if "firewall_whitelist.mac" in line:
+                    parts = line.split("=")
+                    if len(parts) == 2:
+                        mac = parts[1].strip("'\" \t").lower()
+                        if mac and mac not in mac_whitelist:
+                            mac_whitelist.append(mac)
+    except Exception:
+        pass
+
     return {
         "bot_token":             uci_get("remotbot.main.bot_token", ""),
         "allowed_users":         allowed_users,
@@ -1060,6 +1074,9 @@ async def monitor_loop(app):
                     for dev in get_current_devices():
                         mac = dev.get("mac","").lower()
                         if not mac: continue
+                        # Jangan beri notifikasi untuk perangkat yang sudah terautentikasi OpenNDS/voucher
+                        if dev.get("source") == "opennds" or dev.get("status") == "TERHUBUNG":
+                            continue
                         blocked = get_blocked_macs()
                         if mac not in wl and mac not in blocked and mac not in monitor_state["alerted_macs"]:
                             monitor_state["alerted_macs"].add(mac)

@@ -58,15 +58,15 @@ validate_keluarga_voucher() {
         local found=0
         
         for section in $(uci show remotwrt 2>/dev/null | grep '=voucher' | cut -d'.' -f2 | cut -d'=' -f1); do
-            local code=$(uci get remotwrt.@voucher["$section"].code 2>/dev/null)
+            local code=$(uci get remotwrt."$section".code 2>/dev/null)
             if [ "$code" = "$voucher" ]; then
                 found=1
-                local validity=$(uci get remotwrt.@voucher["$section"].validity 2>/dev/null || echo "60")
-                local max_use=$(uci get remotwrt.@voucher["$section"].max_use 2>/dev/null || echo "1")
-                local uses=$(uci get remotwrt.@voucher["$section"].uses 2>/dev/null || echo "0")
-                local created=$(uci get remotwrt.@voucher["$section"].created 2>/dev/null || echo "0")
-                local status=$(uci get remotwrt.@voucher["$section"].status 2>/dev/null || echo "active")
-                local permanent=$(uci get remotwrt.@voucher["$section"].permanent 2>/dev/null || echo "0")
+                local validity=$(uci get remotwrt."$section".validity 2>/dev/null || echo "60")
+                local max_use=$(uci get remotwrt."$section".max_use 2>/dev/null || echo "1")
+                local uses=$(uci get remotwrt."$section".uses 2>/dev/null || echo "0")
+                local created=$(uci get remotwrt."$section".created 2>/dev/null || echo "0")
+                local status=$(uci get remotwrt."$section".status 2>/dev/null || echo "active")
+                local permanent=$(uci get remotwrt."$section".permanent 2>/dev/null || echo "0")
                 
                 # Cek status
                 if [ "$status" != "active" ]; then
@@ -113,10 +113,10 @@ increment_voucher_usage() {
     
     if command -v uci >/dev/null 2>&1 && [ -f /etc/config/remotwrt ]; then
         for section in $(uci show remotwrt 2>/dev/null | grep '=voucher' | cut -d'.' -f2 | cut -d'=' -f1); do
-            local code=$(uci get remotwrt.@voucher["$section"].code 2>/dev/null)
+            local code=$(uci get remotwrt."$section".code 2>/dev/null)
             if [ "$code" = "$voucher" ]; then
-                local uses=$(uci get remotwrt.@voucher["$section"].uses 2>/dev/null || echo "0")
-                uci set remotwrt.@voucher["$section"].uses="$((uses + 1))"
+                local uses=$(uci get remotwrt."$section".uses 2>/dev/null || echo "0")
+                uci set remotwrt."$section".uses="$((uses + 1))"
                 uci commit remotwrt
                 break
             fi
@@ -132,14 +132,14 @@ validate_pengguna_lain_voucher() {
     # Cek dari UCI config untuk voucher category=pengguna_lain
     if command -v uci >/dev/null 2>&1 && [ -f /etc/config/remotwrt ]; then
         for section in $(uci show remotwrt 2>/dev/null | grep '=voucher' | cut -d'.' -f2 | cut -d'=' -f1); do
-            local code=$(uci get remotwrt.@voucher["$section"].code 2>/dev/null)
-            local cat=$(uci get remotwrt.@voucher["$section"].category 2>/dev/null)
+            local code=$(uci get remotwrt."$section".code 2>/dev/null)
+            local cat=$(uci get remotwrt."$section".category 2>/dev/null)
             if [ "$code" = "$voucher" ] && [ "$cat" = "pengguna_lain" ]; then
-                local validity=$(uci get remotwrt.@voucher["$section"].validity 2>/dev/null || echo "60")
-                local max_use=$(uci get remotwrt.@voucher["$section"].max_use 2>/dev/null || echo "1")
-                local uses=$(uci get remotwrt.@voucher["$section"].uses 2>/dev/null || echo "0")
-                local created=$(uci get remotwrt.@voucher["$section"].created 2>/dev/null || echo "0")
-                local status=$(uci get remotwrt.@voucher["$section"].status 2>/dev/null || echo "active")
+                local validity=$(uci get remotwrt."$section".validity 2>/dev/null || echo "60")
+                local max_use=$(uci get remotwrt."$section".max_use 2>/dev/null || echo "1")
+                local uses=$(uci get remotwrt."$section".uses 2>/dev/null || echo "0")
+                local created=$(uci get remotwrt."$section".created 2>/dev/null || echo "0")
+                local status=$(uci get remotwrt."$section".status 2>/dev/null || echo "active")
                 
                 # Cek status
                 if [ "$status" != "active" ]; then
@@ -190,11 +190,11 @@ authenticate() {
                 local expiry="0"
                 if command -v uci >/dev/null 2>&1 && [ -f /etc/config/remotwrt ]; then
                     for section in $(uci show remotwrt 2>/dev/null | grep '=voucher' | cut -d'.' -f2 | cut -d'=' -f1); do
-                        local code=$(uci get remotwrt.@voucher["$section"].code 2>/dev/null)
+                        local code=$(uci get remotwrt."$section".code 2>/dev/null)
                         if [ "$code" = "$VOUCHER" ]; then
-                            permanent=$(uci get remotwrt.@voucher["$section"].permanent 2>/dev/null || echo "0")
-                            local validity=$(uci get remotwrt.@voucher["$section"].validity 2>/dev/null || echo "60")
-                            local created=$(uci get remotwrt.@voucher["$section"].created 2>/dev/null || echo "0")
+                            permanent=$(uci get remotwrt."$section".permanent 2>/dev/null || echo "0")
+                            local validity=$(uci get remotwrt."$section".validity 2>/dev/null || echo "60")
+                            local created=$(uci get remotwrt."$section".created 2>/dev/null || echo "0")
                             if [ "$permanent" = "1" ]; then
                                 expiry="0"
                             else
@@ -233,11 +233,11 @@ authenticate() {
                 local expiry="0"
                 if command -v uci >/dev/null 2>&1 && [ -f /etc/config/remotwrt ]; then
                     for section in $(uci show remotwrt 2>/dev/null | grep '=voucher' | cut -d'.' -f2 | cut -d'=' -f1); do
-                        local code=$(uci get remotwrt.@voucher["$section"].code 2>/dev/null)
-                        local cat=$(uci get remotwrt.@voucher["$section"].category 2>/dev/null)
+                        local code=$(uci get remotwrt."$section".code 2>/dev/null)
+                        local cat=$(uci get remotwrt."$section".category 2>/dev/null)
                         if [ "$code" = "$VOUCHER" ] && [ "$cat" = "pengguna_lain" ]; then
-                            local validity=$(uci get remotwrt.@voucher["$section"].validity 2>/dev/null || echo "60")
-                            local created=$(uci get remotwrt.@voucher["$section"].created 2>/dev/null || echo "0")
+                            local validity=$(uci get remotwrt."$section".validity 2>/dev/null || echo "60")
+                            local created=$(uci get remotwrt."$section".created 2>/dev/null || echo "0")
                             expiry=$((created + validity * 60))
                             break
                         fi
