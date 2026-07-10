@@ -1,9 +1,0 @@
-Package: remotbot
-Version: 1.0.5-1
-Architecture: aarch64_cortex-a72
-Maintainer: RemotWRT <https://github.com/irfanFRizki/RemotWRT-Bot>
-Depends: python3-light, python3-pip
-Section: net
-Priority: optional
-Installed-Size: 140
-Description: RemotWRT Telegram Monitoring Bot for OpenWrt / Raspberry Pi 4

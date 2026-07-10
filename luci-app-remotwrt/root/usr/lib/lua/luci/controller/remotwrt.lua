@@ -422,6 +422,9 @@ function add_firewall_rule(rule_type, mac, ip)
     fw_uci:set("firewall", fw_section, "src_mac", mac)
     fw_uci:commit("firewall")
     
+    -- Call firewall helper script for single source of truth
+    os.execute(string.format("/usr/bin/remotwrt_firewall_helper.sh grant '%s' '%s' 0 0 >/dev/null 2>&1", mac, ip or ""))
+    
     -- Reload firewall to apply changes immediately
     os.execute("/etc/init.d/firewall reload >/dev/null 2>&1")
     
@@ -463,6 +466,19 @@ function remove_firewall_rule(rule_type, ip)
         end
     end)
     fw_uci:commit("firewall")
+    
+    -- Call firewall helper script for single source of truth
+    -- Extract MAC from the rule being removed
+    local mac_to_revoke = ""
+    uci:foreach("remotwrt", "firewall_" .. rule_type, function(section)
+        if (not ip or section.ip == ip) then
+            mac_to_revoke = section.mac or ""
+        end
+    end)
+    
+    if mac_to_revoke ~= "" then
+        os.execute(string.format("/usr/bin/remotwrt_firewall_helper.sh revoke '%s' '%s' >/dev/null 2>&1", mac_to_revoke, ip or ""))
+    end
     
     -- Reload firewall
     os.execute("/etc/init.d/firewall reload >/dev/null 2>&1")

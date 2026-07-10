@@ -43,25 +43,10 @@ for session_file in "$TRACKING_DIR"/*.session 2>/dev/null; do
     if [ "$current_time" -gt "$expiry" ]; then
         log_cleanup "EXPIRED - Session diputus: MAC=$mac IP=$ip"
         
-        # Remove iptables rule for this MAC
-        iptables -D forwarding_rule -m mac --mac-source "$mac" -j ACCEPT 2>/dev/null || true
-        iptables -D FORWARD -m mac --mac-source "$mac" -j ACCEPT 2>/dev/null || true
+        # Call firewall helper to revoke access (single source of truth)
+        /usr/bin/remotwrt_firewall_helper.sh revoke "$mac" "$ip"
         
-        # Deauthenticate via OpenNDS (ndsctl deauth)
-        # Note: ndsctl deauth expects IP address
-        if command -v ndsctl >/dev/null 2>&1; then
-            ndsctl deauth "$ip" 2>/dev/null || true
-        fi
-        
-        # Remove from firewall config (UCI)
-        if command -v uci >/dev/null 2>&1; then
-            uci delete firewall."RemotWRT_whitelist_${mac//:/}" 2>/dev/null && uci commit firewall 2>/dev/null || true
-        fi
-        
-        # Remove session file
-        rm -f "$session_file"
-        
-        log_cleanup "Session removed: MAC=$mac"
+        log_cleanup "Session revoked via firewall helper: MAC=$mac"
     fi
 done
 
@@ -75,6 +60,8 @@ for session_file in "$TRACKING_DIR"/*.session 2>/dev/null; do
         # Check if MAC exists in ARP table
         if ! grep -qi "$mac" /proc/net/arp 2>/dev/null; then
             # Device no longer connected, remove session
+            ip=$(grep "^ip=" "$session_file" 2>/dev/null | cut -d'=' -f2)
+            /usr/bin/remotwrt_firewall_helper.sh revoke "$mac" "${ip:-}"
             rm -f "$session_file"
             log_cleanup "Orphaned session removed: MAC=$mac (device disconnected)"
         fi

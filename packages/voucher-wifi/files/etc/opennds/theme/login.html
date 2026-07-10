@@ -145,10 +145,16 @@
 
             if (category === 'pengguna_lain') {
                 warningBox.style.display = 'block';
-                passwordField.style.display = 'none';
-                voucherInput.value = 'PRIBADI';
-                voucherInput.required = false;
-                submitBtn.disabled = false;
+                passwordField.style.display = 'block';
+                voucherInput.required = true;
+                voucherInput.value = '';
+                voucherInput.focus();
+                submitBtn.disabled = true;
+                
+                // Enable button only when voucher is entered
+                voucherInput.addEventListener('input', function() {
+                    submitBtn.disabled = this.value.trim() === '';
+                });
             } else if (category === 'keluarga') {
                 warningBox.style.display = 'none';
                 passwordField.style.display = 'block';
