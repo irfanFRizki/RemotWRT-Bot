@@ -319,6 +319,10 @@ uci show opennds | grep preauthenticated
 iptables -F forwarding_rule
 ```
 
+## 🔒 Security & Privilege Note
+Sejak versi 1.0.5, Telegram Bot (`remotbot`) dan FAS Server (`remotbot-fas`) dijalankan sebagai user non-root `remotbot` demi keamanan.
+Sebagai konsekuensinya, beberapa operasi administratif (seperti memblokir/mengizinkan MAC address via iptables/firewall uci, atau mengontrol service via `/etc/init.d/`) akan gagal karena tidak dijalankan sebagai root. Ini adalah langkah transisi sebelum mekanisme sudo wrapper diimplementasikan sepenuhnya.
+
 ---
 
 ## 👥 Contributors

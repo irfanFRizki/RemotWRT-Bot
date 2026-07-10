@@ -20,6 +20,7 @@ https://opennds.org/docs/fas.html
 Catatan keamanan:
   - fas_secure_enabled='0' (clear text) karena ini internal network
   - Bisa di-upgrade ke level 1 (hashed token) kalau dipakai di jaringan lebih terbuka
+  - FAS Server ini sekarang berjalan sebagai user non-root 'remotbot'.
 """
 
 import os

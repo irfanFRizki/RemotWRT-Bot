@@ -17,6 +17,13 @@ Fitur:
   - Blokir device tidak terdaftar (MAC whitelist via UCI)
   - Multi-bahasa ID/EN toggle
   - Service control (start/stop/restart)
+
+PENTING/SECURITY NOTE:
+  Bot ini sekarang dikonfigurasi untuk berjalan sebagai user non-root 'remotbot'.
+  Sebagai akibatnya, beberapa perintah administratif (seperti blokir/unblokir MAC
+  menggunakan iptables/uci, kontrol service, uci commit, dsb.) akan gagal karena
+  kurangnya privilege root. Ini adalah langkah transisi keamanan sebelum diimplementasikan
+  sudo wrapper atau permission khusus.
 """
 
 import asyncio

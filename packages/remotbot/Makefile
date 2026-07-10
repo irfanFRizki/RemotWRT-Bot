@@ -52,4 +52,13 @@ define Package/remotbot/install
 	$(INSTALL_DATA) $(PKG_BUILD_DIR)/luasrc/view/remotbot/pending_list.htm $(1)/usr/lib/lua/luci/view/remotbot/
 endef
 
+define Package/remotbot/postinst
+#!/bin/sh
+if [ -z "$${IPKG_INSTROOT}" ]; then
+	grep -q '^remotbot:' /etc/passwd || echo 'remotbot:x:65530:65530:remotbot:/var/run:/bin/false' >> /etc/passwd
+	grep -q '^remotbot:' /etc/group || echo 'remotbot:x:65530:' >> /etc/group
+fi
+exit 0
+endef
+
 $(eval $(call BuildPackage,remotbot))
