@@ -34,14 +34,21 @@ target/
 .vscode/
 .idea/
 
+# OS generated files
+.DS_Store
+Thumbs.db
+
 # Coverage reports
 coverage/
 htmlcov/
 .coverage
 
-# OS specific
-.DS_Store
-Thumbs.db
+# Python specific
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.so
 
 # Compressed files
 *.zip
