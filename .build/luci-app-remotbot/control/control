@@ -1,9 +1,0 @@
-Package: luci-app-remotbot
-Version: 1.0.5-1
-Architecture: aarch64_cortex-a72
-Maintainer: RemotWRT <https://github.com/irfanFRizki/RemotWRT-Bot>
-Depends: remotbot, luci-base
-Section: net
-Priority: optional
-Installed-Size: 96
-Description: LuCI interface for RemotWRT Telegram Bot (Services > Remot Bot)

@@ -184,9 +184,33 @@ authenticate() {
             
             if validate_keluarga_voucher "$VOUCHER"; then
                 log_auth "SUCCESS - Keluarga: $VOUCHER"
+                
+                # Check if this is a permanent voucher
+                local permanent="0"
+                local expiry="0"
+                if command -v uci >/dev/null 2>&1 && [ -f /etc/config/remotwrt ]; then
+                    for section in $(uci show remotwrt 2>/dev/null | grep '=voucher' | cut -d'.' -f2 | cut -d'=' -f1); do
+                        local code=$(uci get remotwrt.@voucher["$section"].code 2>/dev/null)
+                        if [ "$code" = "$VOUCHER" ]; then
+                            permanent=$(uci get remotwrt.@voucher["$section"].permanent 2>/dev/null || echo "0")
+                            local validity=$(uci get remotwrt.@voucher["$section"].validity 2>/dev/null || echo "60")
+                            local created=$(uci get remotwrt.@voucher["$section"].created 2>/dev/null || echo "0")
+                            if [ "$permanent" = "1" ]; then
+                                expiry="0"
+                            else
+                                expiry=$((created + validity * 60))
+                            fi
+                            break
+                        fi
+                    done
+                fi
+                
+                # Call firewall helper to grant access
+                /usr/bin/remotwrt_firewall_helper.sh grant "$CLIENT_MAC" "$CLIENT_IP" "$permanent" "$expiry"
+                
                 echo "1"
                 increment_voucher_usage "$VOUCHER"
-                echo "$(date '+%Y-%m-%d %H:%M:%S') - $CLIENT_MAC ($CLIENT_IP) - Keluarga - $VOUCHER" >> /var/log/voucher_login.log
+                echo "$(date '+%Y-%m-%d %H:%M:%S') - $CLIENT_MAC ($CLIENT_IP) - Keluarga - $VOUCHER - permanent=$permanent" >> /var/log/voucher_login.log
                 exit 0
             else
                 log_auth "FAILED - Voucher tidak valid/expired: $VOUCHER"
@@ -204,9 +228,28 @@ authenticate() {
             
             if validate_pengguna_lain_voucher "$VOUCHER"; then
                 log_auth "SUCCESS - Pengguna Lain: $VOUCHER"
+                
+                # Get expiry time for guest vouchers (always temporary)
+                local expiry="0"
+                if command -v uci >/dev/null 2>&1 && [ -f /etc/config/remotwrt ]; then
+                    for section in $(uci show remotwrt 2>/dev/null | grep '=voucher' | cut -d'.' -f2 | cut -d'=' -f1); do
+                        local code=$(uci get remotwrt.@voucher["$section"].code 2>/dev/null)
+                        local cat=$(uci get remotwrt.@voucher["$section"].category 2>/dev/null)
+                        if [ "$code" = "$VOUCHER" ] && [ "$cat" = "pengguna_lain" ]; then
+                            local validity=$(uci get remotwrt.@voucher["$section"].validity 2>/dev/null || echo "60")
+                            local created=$(uci get remotwrt.@voucher["$section"].created 2>/dev/null || echo "0")
+                            expiry=$((created + validity * 60))
+                            break
+                        fi
+                    done
+                fi
+                
+                # Call firewall helper to grant access (always temporary for guests)
+                /usr/bin/remotwrt_firewall_helper.sh grant "$CLIENT_MAC" "$CLIENT_IP" "0" "$expiry"
+                
                 echo "1"
                 increment_voucher_usage "$VOUCHER"
-                echo "$(date '+%Y-%m-%d %H:%M:%S') - $CLIENT_MAC ($CLIENT_IP) - Pengguna Lain - $VOUCHER" >> /var/log/voucher_login.log
+                echo "$(date '+%Y-%m-%d %H:%M:%S') - $CLIENT_MAC ($CLIENT_IP) - Pengguna Lain - $VOUCHER - expires=$expiry" >> /var/log/voucher_login.log
                 exit 0
             else
                 log_auth "FAILED - Voucher pengguna_lain tidak valid/expired: $VOUCHER"
