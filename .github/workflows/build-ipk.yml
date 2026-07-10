@@ -68,11 +68,11 @@ jobs:
             cd /tmp
 
             wget https://github.com/${{ github.repository }}/releases/download/${{ steps.info.outputs.TAG }}/remotbot_${{ steps.info.outputs.VERSION }}-1_aarch64_cortex-a72.ipk
-            wget https://github.com/${{ github.repository }}/releases/download/${{ steps.info.outputs.TAG }}/luci-app-remotbot_${{ steps.info.outputs.VERSION }}-1_aarch64_cortex-a72.ipk
+            wget https://github.com/${{ github.repository }}/releases/download/${{ steps.info.outputs.TAG }}/luci-app-remotwrt_${{ steps.info.outputs.VERSION }}-1_aarch64_cortex-a72.ipk
 
-            opkg remove remotbot luci-app-remotbot 2>/dev/null
+            opkg remove remotbot luci-app-remotwrt 2>/dev/null
             opkg install remotbot_*.ipk --nodeps
-            opkg install luci-app-remotbot_*.ipk
+            opkg install luci-app-remotwrt_*.ipk
             rm -rf /tmp/luci-indexcache /tmp/luci-modulecache/
             ```
 
@@ -86,6 +86,6 @@ jobs:
             /etc/init.d/remotbot start
             ```
 
-            > Atau lewat **LuCI → Services → Remot Bot → Settings**
+            > Atau lewat **LuCI → Services → RemotWRT WiFi → Bot Control**
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
