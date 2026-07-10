@@ -166,7 +166,7 @@ STRINGS = {
                             "• 🌡 CPU panas | 💾 RAM penuh\n"
                             "• 📡 WAN putus/nyambung\n"
                             "• ⚠️ Device tak dikenal di jaringan\n\n"
-                            "<b>Custom command:</b>\n<code>/cmd uptime</code>"),
+                            "<b>Custom command:</b>\n<code>/cmd uptime</code>\nLihat daftar perintah diizinkan: /cmd_list"),
         "cmd_format":      "❌ Format: <code>/cmd perintah_anda</code>",
         "cmd_blocked":     "❌ Perintah berbahaya diblokir!",
         "executing":       "⏳ Menjalankan...",
@@ -212,7 +212,7 @@ STRINGS = {
                             "• 🌡 CPU hot | 💾 RAM full\n"
                             "• 📡 WAN down/up\n"
                             "• ⚠️ Unknown device on network\n\n"
-                            "<b>Custom command:</b>\n<code>/cmd uptime</code>"),
+                            "<b>Custom command:</b>\n<code>/cmd uptime</code>\nView allowed commands: /cmd_list"),
         "cmd_format":      "❌ Format: <code>/cmd your_command</code>",
         "cmd_blocked":     "❌ Dangerous command blocked!",
         "executing":       "⏳ Executing...",
@@ -1262,11 +1262,63 @@ async def button_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
             logger.error(f"Callback error {cb}: {e}")
             await loading.edit_text(f"{t('error',cfg)}: {str(e)}", parse_mode='HTML', reply_markup=get_main_keyboard(cfg))
 
+ALLOWED_CMD_PREFIXES = {'uptime', 'df', 'free', 'ip', 'ping', 'nslookup', 'vnstat', 'service', 'ps', 'top', 'cat', 'sysinfo.sh'}
+
+async def cmd_list_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    uid = update.effective_user.id; cfg = load_config()
+    if not check_auth(uid): await update.message.reply_text("❌ Unauthorized!"); return
+    allowed_str = ", ".join(sorted(ALLOWED_CMD_PREFIXES))
+    msg = (f"📋 <b>Daftar Perintah diizinkan (/cmd):</b>\n"
+           f"<code>{allowed_str}</code>\n\n"
+           f"<i>Catatan: perintah 'cat' hanya diizinkan untuk path /proc/*, /sys/class/thermal/*, dan /etc/resolv.conf</i>")
+    if cfg.get("language", "id") == "en":
+        msg = (f"📋 <b>Allowed Commands (/cmd):</b>\n"
+               f"<code>{allowed_str}</code>\n\n"
+               f"<i>Note: 'cat' is only allowed for paths: /proc/*, /sys/class/thermal/*, and /etc/resolv.conf</i>")
+    await update.message.reply_text(msg, parse_mode='HTML')
+
 async def cmd_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     uid = update.effective_user.id; cfg = load_config()
     if not check_auth(uid): await update.message.reply_text("❌ Unauthorized!"); return
     if not context.args: await update.message.reply_text(t("cmd_format",cfg), parse_mode='HTML'); return
     command = ' '.join(context.args)
+    
+    parts = command.strip().split()
+    if not parts:
+        await update.message.reply_text(t("cmd_format",cfg), parse_mode='HTML')
+        return
+        
+    base_cmd = parts[0].lower()
+    
+    # Check if base_cmd is allowed
+    if base_cmd not in ALLOWED_CMD_PREFIXES:
+        allowed_str = ", ".join(sorted(ALLOWED_CMD_PREFIXES))
+        msg = f"{t('cmd_blocked',cfg)}\n\nCommand <code>{base_cmd}</code> tidak diizinkan.\n\nPerintah diizinkan: <code>{allowed_str}</code>"
+        if cfg.get("language", "id") == "en":
+            msg = f"{t('cmd_blocked',cfg)}\n\nCommand <code>{base_cmd}</code> is not allowed.\n\nAllowed commands: <code>{allowed_str}</code>"
+        await update.message.reply_text(msg, parse_mode='HTML')
+        return
+        
+    # Check cat command path restrictions
+    if base_cmd == 'cat':
+        if len(parts) < 2:
+            await update.message.reply_text("❌ Perintah cat membutuhkan path file.", parse_mode='HTML')
+            return
+        for arg in parts[1:]:
+            if arg.startswith('-'):
+                continue
+            clean_arg = arg.replace("'", "").replace('"', "")
+            if '..' in clean_arg:
+                await update.message.reply_text("❌ Path traversal tidak diizinkan.", parse_mode='HTML')
+                return
+            allowed_prefixes = ('/proc/', '/sys/class/thermal/', '/etc/resolv.conf')
+            if not (clean_arg.startswith(allowed_prefixes) or clean_arg == '/etc/resolv.conf'):
+                msg = f"❌ Akses ke <code>{clean_arg}</code> dibatasi. Hanya path di bawah <code>/proc/*</code>, <code>/sys/class/thermal/*</code>, atau <code>/etc/resolv.conf</code> yang diizinkan."
+                if cfg.get("language", "id") == "en":
+                    msg = f"❌ Access to <code>{clean_arg}</code> is restricted. Only paths under <code>/proc/*</code>, <code>/sys/class/thermal/*</code>, or <code>/etc/resolv.conf</code> are allowed."
+                await update.message.reply_text(msg, parse_mode='HTML')
+                return
+
     if any(c in command.lower() for c in ['rm -rf','dd if=','mkfs','format','> /dev/']):
         await update.message.reply_text(t("cmd_blocked",cfg)); return
     loading = await update.message.reply_text(t("executing",cfg))
@@ -1285,6 +1337,7 @@ def main():
     app = Application.builder().token(cfg["bot_token"]).build()
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("cmd", cmd_handler))
+    app.add_handler(CommandHandler("cmd_list", cmd_list_handler))
     app.add_handler(MessageHandler(filters.Regex('^(📋 Menu|ℹ️ Help|🔄 Refresh)$'), handle_keyboard_button))
     app.add_handler(CallbackQueryHandler(button_callback))
     app.add_error_handler(error_handler)
