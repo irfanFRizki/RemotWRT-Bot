@@ -1,0 +1,119 @@
+<%+header%>
+
+<div class="cbi-map">
+    <h2 name="content">Device History</h2>
+    <div class="cbi-map-descr">Historical record of devices that have connected to the network</div>
+</fieldset>
+
+<fieldset class="cbi-section">
+    <legend>Connection History</legend>
+    <table class="cbi-section-table" id="history-table">
+        <tr class="cbi-section-table-titles">
+            <th class="cbi-section-table-cell">Timestamp</th>
+            <th class="cbi-section-table-cell">MAC Address</th>
+            <th class="cbi-section-table-cell">IP Address</th>
+            <th class="cbi-section-table-cell">Event</th>
+        </tr>
+        <tr class="cbi-section-table-row" id="loading-row">
+            <td colspan="4" style="text-align:center;">Loading history...</td>
+        </tr>
+    </table>
+</fieldset>
+
+<fieldset class="cbi-section">
+    <legend>Actions</legend>
+    <button class="cbi-button cbi-button-positive" onclick="loadHistory()">Refresh</button>
+    <button class="cbi-button cbi-button-negative" onclick="clearHistory()">Clear History</button>
+</fieldset>
+
+<script type="text/javascript">
+    function loadHistory() {
+        // Read history file via XHR to CGI endpoint or direct file access
+        var xhr = new XMLHttpRequest();
+        xhr.open('GET', '/cgi-bin/luci/admin/services/remotwrt/history_data', true);
+        xhr.onreadystatechange = function() {
+            if (xhr.readyState === 4) {
+                if (xhr.status === 200) {
+                    try {
+                        var data = JSON.parse(xhr.responseText);
+                        displayHistory(data);
+                    } catch (e) {
+                        // If not JSON, try to parse as lines
+                        var lines = xhr.responseText.trim().split('\n');
+                        var parsedData = [];
+                        lines.forEach(function(line) {
+                            if (line.trim()) {
+                                try {
+                                    parsedData.push(JSON.parse(line));
+                                } catch (e2) {}
+                            }
+                        });
+                        displayHistory(parsedData);
+                    }
+                } else {
+                    document.getElementById('loading-row').innerHTML = 
+                        '<td colspan="4" style="text-align:center;">No history available</td>';
+                }
+            }
+        };
+        xhr.send();
+    }
+    
+    function displayHistory(data) {
+        var table = document.getElementById('history-table');
+        
+        // Clear existing rows except header
+        while (table.rows.length > 1) {
+            table.deleteRow(1);
+        }
+        
+        if (data && data.length > 0) {
+            // Sort by timestamp descending
+            data.sort(function(a, b) { return b.timestamp - a.timestamp; });
+            
+            data.forEach(function(entry) {
+                var row = table.insertRow(-1);
+                row.className = 'cbi-section-table-row';
+                
+                var cell_time = row.insertCell(0);
+                var date = new Date(entry.timestamp * 1000);
+                cell_time.textContent = date.toLocaleString();
+                
+                var cell_mac = row.insertCell(1);
+                cell_mac.textContent = entry.mac || '-';
+                
+                var cell_ip = row.insertCell(2);
+                cell_ip.textContent = entry.ip || '-';
+                
+                var cell_event = row.insertCell(3);
+                cell_event.textContent = entry.event || 'connect';
+            });
+        } else {
+            var row = table.insertRow(-1);
+            row.className = 'cbi-section-table-row';
+            var cell = row.insertCell(0);
+            cell.colSpan = 4;
+            cell.textContent = 'No history records found';
+            cell.style.textAlign = 'center';
+        }
+    }
+    
+    function clearHistory() {
+        if (confirm("Are you sure you want to clear all history?")) {
+            var xhr = new XMLHttpRequest();
+            xhr.open('POST', '/cgi-bin/luci/admin/services/remotwrt/clear_history', true);
+            xhr.onreadystatechange = function() {
+                if (xhr.readyState === 4 && xhr.status === 200) {
+                    alert("History cleared");
+                    loadHistory();
+                }
+            };
+            xhr.send();
+        }
+    }
+    
+    // Initial load
+    loadHistory();
+</script>
+
+<%+footer%>

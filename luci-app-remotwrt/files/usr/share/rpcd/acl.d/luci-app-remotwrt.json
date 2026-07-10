@@ -1,0 +1,40 @@
+{
+    "luci": {
+        "admin": {
+            "services": {
+                "remotwrt": {
+                    "description": "Access to RemotWRT WiFi Management",
+                    "read": {
+                        "ubus": {
+                            "remotwrt": [
+                                "get_devices",
+                                "get_vouchers",
+                                "get_firewall_rules",
+                                "get_statistics"
+                            ]
+                        },
+                        "file": {
+                            "/var/log/remotwrt.log": [ "read" ],
+                            "/var/lib/remotwrt/device_history.json": [ "read" ],
+                            "/etc/config/remotwrt": [ "read" ]
+                        }
+                    },
+                    "write": {
+                        "ubus": {
+                            "remotwrt": [
+                                "generate_voucher",
+                                "bind_voucher",
+                                "add_firewall_rule",
+                                "remove_firewall_rule",
+                                "update_settings"
+                            ]
+                        },
+                        "file": {
+                            "/etc/config/remotwrt": [ "write" ]
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
