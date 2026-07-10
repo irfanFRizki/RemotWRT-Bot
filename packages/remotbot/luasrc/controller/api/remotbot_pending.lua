@@ -2,6 +2,11 @@ module("luci.controller.api.remotbot_pending", package.seeall)
 
 -- API endpoint untuk read/write pending approval OpenNDS
 -- Digunakan oleh LuCI web interface untuk manage device tanpa Telegram
+--
+-- PENTING:
+--   Fitur ini tidak lagi menjadi mekanisme auth utama captive portal sejak sistem voucher (BinAuth)
+--   diaktifkan. Sistem ini sekarang murni untuk observasi/monitoring dan override manual admin 
+--   lewat Telegram (mis. blokir MAC address langsung), tidak menangani alur login WiFi tamu.
 
 function index()
     -- Endpoint GET untuk baca semua pending entries

@@ -76,6 +76,10 @@ opkg update
 opkg install /tmp/voucher-wifi_1.0.0-1_all.ipk
 ```
 
+### ⚠️ Catatan Penting Dependency (OpenWrt 24.10+)
+Proyek ini menargetkan OpenWrt 24.10+ yang menggunakan **fw4** (nftables) secara default. 
+Paket `iptables` didefinisikan sebagai dependency wajib agar script firewall helper (`remotwrt_firewall_helper.sh`) dapat berjalan dengan baik. Di OpenWrt berbasis fw4, instalasi `iptables` akan otomatis di-resolve oleh sistem paket OpenWrt (`opkg`) ke **`iptables-nft`** (layer kompatibilitas iptables ke nftables), bukan `iptables-legacy`. Jangan hapus dependency ini karena helper script mengandalkan perintah `iptables` untuk manipulasi rule secara dinamis.
+
 ## ⚙️ Konfigurasi
 
 ### A. Konfigurasi OpenNDS

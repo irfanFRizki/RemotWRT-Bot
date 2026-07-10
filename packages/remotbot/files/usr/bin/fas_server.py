@@ -3,6 +3,11 @@
 FAS (Forwarding Authentication Service) Server untuk OpenNDS
 HTTP server standalone yang menangani autentikasi captive portal
 
+PENTING:
+  Fitur ini tidak lagi menjadi mekanisme auth utama captive portal sejak sistem voucher (BinAuth)
+  diaktifkan. Sistem ini sekarang murni untuk observasi/monitoring dan override manual admin 
+  lewat Telegram (mis. blokir MAC address langsung), tidak menangani alur login WiFi tamu.
+
 Config dibaca dari UCI remotbot.main (reuse konfigurasi yang sama dengan pi4Bot.py):
   - bot_token: Token Telegram bot
   - allowed_users: User ID yang boleh approve/block

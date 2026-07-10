@@ -19,7 +19,7 @@ define Package/voucher-wifi
   SUBMENU:=Applications
   TITLE:=Sistem Login WiFi Voucher dengan OpenNDS
   URL:=https://github.com/remotwrt/remotwrt-bot
-  DEPENDS:=+opennds +uhttpd +lua +libuci-lua
+  DEPENDS:=+opennds +uhttpd +lua +libuci-lua +iptables
   PKGARCH:=all
 endef
 

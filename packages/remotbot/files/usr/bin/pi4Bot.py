@@ -561,6 +561,23 @@ def block_mac(mac: str) -> bool:
     if not is_valid_mac(mac):
         logger.error(f"block_mac: Invalid MAC format: {mac}")
         return False
+        
+    # Find IP for revoke if possible
+    ip = "?"
+    try:
+        if os.path.exists("/proc/net/arp"):
+            with open("/proc/net/arp", "r") as f:
+                for line in f:
+                    parts = line.split()
+                    if len(parts) >= 4 and parts[3].lower() == mac:
+                        ip = parts[0]
+                        break
+    except Exception as e:
+        logger.error(f"Error parsing ARP for blocking: {e}")
+
+    # Revoke voucher session first (single source of truth)
+    run_command(f"/usr/bin/remotwrt_firewall_helper.sh revoke '{mac}' '{ip}'")
+
     # 1. Simpan ke UCI remotbot.blocked_macs (persistent)
     run_command(f"uci add_list remotbot.main.blocked_macs=\'{mac}\'")
     run_command("uci commit remotbot")
@@ -580,6 +597,7 @@ def block_mac(mac: str) -> bool:
         f"EOF"
     )
     return True
+
 
 def unblock_mac(mac: str) -> bool:
     """Hapus blokir MAC dari UCI + iptables"""

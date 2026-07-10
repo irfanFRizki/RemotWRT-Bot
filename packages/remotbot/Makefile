@@ -14,7 +14,7 @@ define Package/remotbot
   SECTION:=net
   CATEGORY:=Network
   TITLE:=RemotWRT-Bot - Telegram Bot untuk OpenWrt Monitoring
-  DEPENDS:=+python3 +python3-light +libuci +curl +iptables +opennds
+  DEPENDS:=+python3 +python3-light +libuci +curl +iptables +opennds +voucher-wifi
 endef
 
 define Package/remotbot/description
@@ -43,7 +43,6 @@ define Package/remotbot/install
 	
 	$(INSTALL_DIR) $(1)/etc/config
 	$(INSTALL_CONF) $(PKG_BUILD_DIR)/files/etc/config/remotbot $(1)/etc/config/
-	$(INSTALL_CONF) $(PKG_BUILD_DIR)/files/etc/config/opennds $(1)/etc/config/
 	
 	# Install LuCI files
 	$(INSTALL_DIR) $(1)/usr/lib/lua/luci/controller

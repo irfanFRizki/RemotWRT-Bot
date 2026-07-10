@@ -61,6 +61,20 @@ if [ ! -f /etc/config/opennds ]; then
     echo "✓ Konfigurasi OpenNDS default diterapkan"
 fi
 
+# Konfigurasi via UCI untuk menjamin BinAuth aktif dan FAS bersih
+if command -v uci >/dev/null 2>&1; then
+    # Buat section opennds jika belum ada
+    uci get opennds.opennds >/dev/null 2>&1 || uci set opennds.opennds=opennds
+    uci set opennds.opennds.enabled='1'
+    uci set opennds.opennds.custom_auth_script='/usr/bin/voucher_auth.sh'
+    # Hapus opsi-opsi FAS yang bertubrukan
+    uci delete opennds.opennds.fas_url 2>/dev/null
+    uci delete opennds.opennds.fas_port 2>/dev/null
+    uci delete opennds.opennds.fas_secure_enabled 2>/dev/null
+    uci commit opennds
+    echo "✓ Konfigurasi OpenNDS diatur via UCI (BinAuth aktif, FAS dibersihkan)"
+fi
+
 # Restart OpenNDS untuk menerapkan perubahan
 echo "→ Merestart OpenNDS..."
 /etc/init.d/opennds restart 2>/dev/null || true
