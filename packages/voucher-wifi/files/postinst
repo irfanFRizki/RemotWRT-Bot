@@ -1,0 +1,52 @@
+#!/bin/sh
+# Post-installation script untuk paket voucher-wifi
+
+echo "=== Instalasi Voucher WiFi RemotWRT ==="
+
+# Buat file voucher kosong jika belum ada
+if [ ! -f /etc/voucher_keluarga.txt ]; then
+    touch /etc/voucher_keluarga.txt
+    echo "# Voucher Keluarga Default" > /etc/voucher_keluarga.txt
+    echo "KELUARGA123" >> /etc/voucher_keluarga.txt
+    echo "FAMILY2024" >> /etc/voucher_keluarga.txt
+    echo "RUMAH456" >> /etc/voucher_keluarga.txt
+    echo "✓ File voucher keluarga dibuat dengan 3 voucher default"
+fi
+
+# Set permission untuk script
+chmod +x /usr/bin/voucher_auth.sh
+chmod +x /www/cgi-bin/voucher_manager.cgi
+echo "✓ Permission script diatur"
+
+# Backup konfigurasi OpenNDS lama jika ada
+if [ -f /etc/config/opennds ]; then
+    cp /etc/config/opennds /etc/config/opennds.backup.$(date +%Y%m%d%H%M%S)
+    echo "✓ Backup konfigurasi OpenNDS lama"
+fi
+
+# Copy konfigurasi baru jika belum ada
+if [ ! -f /etc/config/opennds ]; then
+    cp /etc/config/opennds.default /etc/config/opennds
+    echo "✓ Konfigurasi OpenNDS default diterapkan"
+fi
+
+# Restart OpenNDS untuk menerapkan perubahan
+echo "→ Merestart OpenNDS..."
+/etc/init.d/opennds restart 2>/dev/null || true
+
+# Buat log file
+touch /var/log/voucher_login.log
+chmod 644 /var/log/voucher_login.log
+echo "✓ Log file dibuat"
+
+echo ""
+echo "=== Instalasi Selesai! ==="
+echo ""
+echo "📋 Langkah selanjutnya:"
+echo "1. Akses halaman login: http://192.168.1.1 (akan redirect ke OpenNDS)"
+echo "2. Kelola voucher: http://192.168.1.1/cgi-bin/voucher_manager.cgi"
+echo "3. Voucher default: KELUARGA123, FAMILY2024, RUMAH456"
+echo ""
+echo "⚙️  Konfigurasi OpenNDS ada di: /etc/config/opennds"
+echo "📝 Log login ada di: /var/log/voucher_login.log"
+echo ""
