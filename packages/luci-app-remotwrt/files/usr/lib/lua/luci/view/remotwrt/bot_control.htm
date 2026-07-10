@@ -1,0 +1,121 @@
+<%+header%>
+<style>
+:root{
+  --rb-primary:#3498db;--rb-primary-dark:#2980b9;--rb-success:#27ae60;--rb-danger:#e74c3c;
+  --rb-warning:#f39c12;--rb-info:#1abc9c;--rb-dark:#2c3e50;--rb-gray:#95a5a6;
+  --rb-bg:#f5f7fa;--rb-card-bg:#ffffff;--rb-border:#e8eaed;--rb-text:#2c3e50;
+  --rb-text-light:#7f8c8d;--rb-shadow:0 2px 8px rgba(0,0,0,0.08);
+  --rb-shadow-hover:0 4px 16px rgba(0,0,0,0.12);--rb-radius:12px;
+}
+*{box-sizing:border-box}
+.rb-container{max-width:960px;margin:0 auto;padding:10px}
+.rb-header{
+  background:linear-gradient(135deg,var(--rb-dark),var(--rb-primary));
+  border-radius:var(--rb-radius);padding:28px 32px;margin-bottom:24px;color:#fff;
+  display:flex;justify-content:space-between;align-items:center;
+  box-shadow:var(--rb-shadow);position:relative;overflow:hidden
+}
+.rb-header::before{
+  content:'';position:absolute;top:-50%;right:-50%;width:200%;height:200%;
+  background:radial-gradient(circle,rgba(255,255,255,0.1) 0%,transparent 70%);
+  animation:pulse 4s ease-in-out infinite
+}
+@keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.05)}}
+.rb-header-content{position:relative;z-index:1}
+.rb-header h2{margin:0 0 6px;font-size:26px;font-weight:700;letter-spacing:-0.5px}
+.rb-header p{margin:0;opacity:0.9;font-size:14px;font-weight:400}
+.rb-status-badge{
+  display:inline-flex;align-items:center;gap:8px;padding:8px 18px;
+  border-radius:20px;font-size:13px;font-weight:700;background:rgba(255,255,255,0.2);
+  backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,0.3)
+}
+.rb-status-dot{width:10px;height:10px;border-radius:50%;animation:blink 2s infinite}
+.dot-active{background:#2ecc71;box-shadow:0 0 10px #2ecc71}
+.dot-inactive{background:#e74c3c;box-shadow:0 0 10px #e74c3c}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0.5}}
+.rb-card{
+  background:var(--rb-card-bg);border:1px solid var(--rb-border);
+  border-radius:var(--rb-radius);padding:24px 28px;margin-bottom:20px;
+  box-shadow:var(--rb-shadow);transition:all 0.3s ease;position:relative;overflow:hidden
+}
+.rb-card::before{
+  content:'';position:absolute;top:0;left:0;width:4px;height:100%;
+  background:linear-gradient(180deg,var(--rb-primary),var(--rb-info))
+}
+.rb-card h3{
+  margin:0 0 18px;font-size:17px;color:var(--rb-text);font-weight:700;
+  display:flex;align-items:center;gap:10px;padding-bottom:12px;
+  border-bottom:2px solid var(--rb-bg)
+}
+.btn-row{display:flex;gap:12px;flex-wrap:wrap;margin-top:8px}
+.rb-btn{
+  padding:10px 22px;border:none;border-radius:10px;font-size:14px;
+  font-weight:700;cursor:pointer;color:#fff;display:inline-flex;
+  align-items:center;gap:8px;transition:all 0.3s ease;box-shadow:0 2px 6px rgba(0,0,0,0.15);
+  text-decoration:none;justify-content:center
+}
+.rb-btn:hover{transform:translateY(-2px);box-shadow:0 4px 12px rgba(0,0,0,0.2)}
+.rb-btn:active{transform:translateY(0)}
+.btn-start{background:linear-gradient(135deg,var(--rb-success),#229954)}
+.btn-stop{background:linear-gradient(135deg,var(--rb-danger),#c0392b)}
+.btn-restart{background:linear-gradient(135deg,var(--rb-primary),var(--rb-primary-dark))}
+.rb-badge{
+  display:inline-flex;align-items:center;gap:6px;padding:5px 14px;
+  border-radius:16px;font-size:12px;font-weight:700
+}
+.badge-success{background:rgba(39,174,96,0.12);color:var(--rb-success);border:1px solid rgba(39,174,96,0.2)}
+.badge-danger{background:rgba(231,76,60,0.12);color:var(--rb-danger);border:1px solid rgba(231,76,60,0.2)}
+.rb-note{
+  background:linear-gradient(135deg,#e8f4fd,#d6eaf8);border-left:4px solid var(--rb-primary);
+  border-radius:var(--rb-radius);padding:14px 18px;font-size:13px;margin-bottom:16px;
+  color:var(--rb-text)
+}
+@media(max-width:768px){
+  .rb-header{flex-direction:column;text-align:center;gap:16px;padding:24px}
+  .btn-row{flex-direction:column}
+  .rb-btn{width:100%}
+}
+</style>
+<div class="rb-container">
+<div class="rb-header">
+  <div class="rb-header-content">
+    <h2>🤖 Telegram Bot Control</h2>
+    <p>Monitoring Bot — OpenWrt / Raspberry Pi</p>
+  </div>
+  <% if self.running then %>
+  <span class="rb-status-badge"><span class="rb-status-dot dot-active"></span>Running</span>
+  <% else %>
+  <span class="rb-status-badge"><span class="rb-status-dot dot-inactive"></span>Stopped</span>
+  <% end %>
+</div>
+
+<div class="rb-card">
+  <h3>⚙️ Kontrol Service</h3>
+  <div class="rb-note">
+    Gunakan tombol di bawah untuk start/stop/restart service <code>remotbot</code>. Setelah mengubah konfigurasi bot, klik <strong>Restart</strong> agar perubahan berlaku.
+  </div>
+  <form method="post" action="<%=luci.dispatcher.build_url("admin","services","remotwrt","bot_control")%>">
+    <div class="btn-row">
+      <button class="rb-btn btn-start" type="submit" name="action" value="start">▶ Start</button>
+      <button class="rb-btn btn-stop" type="submit" name="action" value="stop">■ Stop</button>
+      <button class="rb-btn btn-restart" type="submit" name="action" value="restart">↺ Restart</button>
+    </div>
+  </form>
+</div>
+
+<div class="rb-card">
+  <h3>📊 Status Saat Ini</h3>
+  <p>
+    Service remotbot:
+    <% if self.running then %>
+      <span class="rb-badge badge-success">● Running</span>
+    <% else %>
+      <span class="rb-badge badge-danger">● Stopped</span>
+    <% end %>
+  </p>
+  <p style="font-size:13px;color:#7f8c8d;margin-top:8px">
+    Konfigurasi bot (token, allowed users, notifikasi) diatur di form di bawah.
+  </p>
+</div>
+</div>
+<%+footer%>

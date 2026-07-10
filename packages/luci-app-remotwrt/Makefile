@@ -6,8 +6,8 @@
 
 include $(TOPDIR)/rules.mk
 
-LUCI_TITLE:=LuCI Support for RemotWRT - Advanced WiFi Management
-LUCI_DEPENDS:=+opennds +luci-base +rpcd +uhttpd
+LUCI_TITLE:=LuCI Support for RemotWRT - Advanced WiFi & Bot Management
+LUCI_DEPENDS:=+opennds +luci-base +rpcd +uhttpd +remotbot
 LUCI_PKGARCH:=all
 
 PKG_NAME:=luci-app-remotwrt

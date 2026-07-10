@@ -13,10 +13,13 @@
                                 "get_statistics"
                             ]
                         },
+                        "uci": [ "remotwrt", "remotbot" ],
                         "file": {
                             "/var/log/remotwrt.log": [ "read" ],
                             "/var/lib/remotwrt/device_history.json": [ "read" ],
-                            "/etc/config/remotwrt": [ "read" ]
+                            "/etc/config/remotwrt": [ "read" ],
+                            "/etc/config/remotbot": [ "read" ],
+                            "/var/run/remotbot.pid": [ "read" ]
                         }
                     },
                     "write": {
@@ -27,10 +30,14 @@
                                 "add_firewall_rule",
                                 "remove_firewall_rule",
                                 "update_settings"
-                            ]
+                            ],
+                            "service": [ "set", "list", "event", "signal" ],
+                            "rc": [ "init" ]
                         },
+                        "uci": [ "remotwrt", "remotbot" ],
                         "file": {
-                            "/etc/config/remotwrt": [ "write" ]
+                            "/etc/config/remotwrt": [ "write" ],
+                            "/etc/config/remotbot": [ "write" ]
                         }
                     }
                 }

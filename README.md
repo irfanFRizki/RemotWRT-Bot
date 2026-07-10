@@ -65,18 +65,24 @@ RemotWRT-Bot/
     │       ├── www/cgi-bin/online     ← CGI daftar device online (CGI+OpenNDS+ARP)
     │       ├── etc/init.d/remotbot    ← Service script (procd)
     │       └── etc/config/remotbot   ← UCI config template
-    └── luci-app-remotbot/             ← Package LuCI interface
-        └── files/
-            ├── usr/lib/lua/luci/
-            │   ├── controller/remotbot.lua
-            │   ├── model/cbi/remotbot/dashboard.lua
-            │   ├── model/cbi/remotbot/settings.lua
-            │   ├── model/cbi/remotbot/voucher.lua  ← Manajemen voucher
-            │   └── view/remotbot/
-            │       ├── dashboard_status.htm
-            │       └── voucher_manager.htm         ← UI kelola voucher
-            ├── usr/share/rpcd/acl.d/luci-app-remotbot.json
-            └── etc/uci-defaults/luci-app-remotbot
+    ├── luci-app-remotwrt/             ← Package LuCI interface (single, terpadu)
+    │   └── files/
+    │       ├── usr/lib/lua/luci/
+    │       │   ├── controller/remotwrt.lua         ← Router utama semua tab
+    │       │   ├── model/cbi/remotwrt/
+    │       │   │   ├── settings.lua               ← Pengaturan WiFi portal
+    │       │   │   ├── vouchers.lua               ← Manajemen voucher
+    │       │   │   ├── firewall.lua               ← Aturan firewall
+    │       │   │   └── bot_control.lua            ← Kontrol & konfigurasi Telegram Bot
+    │       │   └── view/remotwrt/
+    │       │       ├── dashboard.htm              ← Dashboard perangkat terhubung
+    │       │       ├── history.htm                ← Riwayat device
+    │       │       └── bot_control.htm            ← UI kontrol service bot
+    │       ├── usr/share/rpcd/acl.d/luci-app-remotwrt.json
+    │       └── etc/
+    │           ├── config/remotwrt               ← Config WiFi portal
+    │           └── init.d/remotwrt               ← Service script portal
+    └── voucher-wifi/                  ← Helper script voucher
 ```
 
 ---
@@ -93,18 +99,20 @@ cd /tmp
 
 # Download IPK dari Releases atau Actions Artifacts
 wget <URL_remotbot_1.0.0-1_aarch64_cortex-a72.ipk>
-wget <URL_luci-app-remotbot_1.0.0-1_aarch64_cortex-a72.ipk>
+wget <URL_luci-app-remotwrt_1.0.0-1_aarch64_cortex-a72.ipk>
 
 # Uninstall lama jika ada
-opkg remove remotbot luci-app-remotbot 2>/dev/null
+opkg remove remotbot luci-app-remotwrt luci-app-remotbot 2>/dev/null
 
 # Install — gunakan --nodeps untuk remotbot
 opkg install remotbot_*.ipk --nodeps
-opkg install luci-app-remotbot_*.ipk
+opkg install luci-app-remotwrt_*.ipk
 
 # Bersihkan LuCI cache
 rm -rf /tmp/luci-indexcache /tmp/luci-modulecache/
 ```
+
+> **Catatan migrasi:** `luci-app-remotbot` telah digabungkan ke `luci-app-remotwrt` sebagai tab "Bot Control". Jika sebelumnya install `luci-app-remotbot`, jalankan `opkg remove luci-app-remotbot` terlebih dahulu.
 
 #### Build Manual
 
@@ -141,13 +149,13 @@ chmod +x install.sh
 
 #### Via LuCI (Recommended)
 
-1. Buka LuCI → **Services → Remot Bot → Settings**
+1. Buka LuCI → **Services → RemotWRT WiFi → Bot Control**
 2. Isi **Telegram Bot Token** (buat via [@BotFather](https://t.me/BotFather))
 3. Isi **Allowed User IDs** (cari via [@userinfobot](https://t.me/userinfobot))
 4. Atur notifikasi otomatis (suhu CPU, RAM, WAN, device asing)
 5. Pilih bahasa (Indonesia/English)
 6. Centang **Enable** → **Save & Apply**
-7. Buka **Dashboard → Start**
+7. Klik tombol **Start** di bagian Kontrol Service
 
 #### Via UCI (Terminal)
 
@@ -173,7 +181,7 @@ uci commit remotbot
 ### B. Konfigurasi Login Voucher WiFi
 
 #### 1. Buat Voucher via LuCI
-1. Buka LuCI → **Services → Remot Bot → Voucher Manager**
+1. Buka LuCI → **Services → RemotWRT WiFi → Voucher Manager**
 2. Pilih kategori: **Keluarga** atau **Pengguna Lain**
 3. Masukkan kode voucher dan durasi (menit/jam/hari)
 4. Klik **Add Voucher**

@@ -11,6 +11,7 @@ function index()
     entry({"admin", "services", "remotwrt", "firewall"}, cbi("remotwrt/firewall"), _("Firewall Rules"), 3).leaf = true
     entry({"admin", "services", "remotwrt", "settings"}, cbi("remotwrt/settings"), _("Settings"), 4).leaf = true
     entry({"admin", "services", "remotwrt", "history"}, template("remotwrt/history"), _("Device History"), 5).leaf = true
+    entry({"admin", "services", "remotwrt", "bot_control"}, cbi("remotwrt/bot_control"), _("Bot Control"), 6).leaf = true
     
     -- API endpoints (protected by LuCI session)
     entry({"admin", "services", "remotwrt", "api"}, call("api_remotwrt")).leaf = true

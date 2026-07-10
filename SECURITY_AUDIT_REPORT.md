@@ -160,16 +160,31 @@ if [ $max_use -gt 0 ] && [ $uses -ge $max_use ]; then
 fi
 ```
 
-### 2.4 Konsolidasi Paket (IN PROGRESS)
-**Status:** Tiga implementasi paralel teridentifikasi:
-- `packages/luci-app-remotbot`
-- `packages/remotbot`
-- `luci-app-remotwrt` ← **Dipilih sebagai sumber kebenaran**
+### 2.4 Konsolidasi Paket (SELESAI)
+**Status:** Selesai — `packages/luci-app-remotbot` telah dihapus.
 
-**Rekomendasi:** 
-- Tandai `luci-app-remotbot` dan `remotbot` sebagai deprecated
-- Migrasi fitur unik (jika ada) ke `luci-app-remotwrt`
-- Hapus setelah konfirmasi tidak ada dependency
+**Analisis diff yang dilakukan:**
+
+| Komponen | luci-app-remotbot | luci-app-remotwrt | Keputusan |
+|---|---|---|---|
+| Controller routes | `dashboard`, `settings` | `dashboard`, `vouchers`, `firewall`, `settings`, `history`, API | remotbot unik |
+| CBI Model settings | Bot token, allowed_users, notification thresholds | WiFi portal, network config | Scope berbeda |
+| View dashboard | Status service bot + kontrol start/stop/restart | Device monitoring (WiFi) | remotbot unik |
+| Config namespace | `remotbot` (UCI bot config) | `remotwrt` (UCI WiFi config) | Namespace berbeda |
+
+**Fitur unik di `luci-app-remotbot` yang dimigrasi ke `luci-app-remotwrt`:**
+
+1. **Tab "Bot Control"** — route baru di `remotwrt` controller (priority 6)
+2. **`model/cbi/remotwrt/bot_control.lua`** — form konfigurasi bot (token, allowed_users, bahasa, threshold notifikasi) + logika start/stop/restart via `sys.call()`
+3. **`view/remotwrt/bot_control.htm`** — UI status running/stopped + tombol service control (diambil dari `remotbot/dashboard_status.htm`)
+4. **ACL update** — `luci-app-remotwrt.json` diperluas: tambah read/write UCI `remotbot`, akses PID file, dan ubus `service`/`rc` untuk kontrol service
+
+**Yang dihapus:**
+- Seluruh folder `packages/luci-app-remotbot/` (controller, 2 CBI models, 1 view, ACL JSON, uci-defaults, Makefile)
+
+**Update dependency:**
+- `luci-app-remotwrt` Makefile: `LUCI_DEPENDS` ditambah `+remotbot`
+- README.md: path instalasi dan LuCI navigation diperbarui
 
 ---
 
