@@ -24,6 +24,7 @@ Catatan keamanan:
 
 import os
 import sys
+import html
 import json
 import time
 import subprocess
@@ -243,6 +244,9 @@ def get_splash_page(mac: str, ip: str, hostname: str, status: str, language: str
     Background: gelap
     Auto-refresh tiap 4 detik untuk cek status approval
     """
+    mac = html.escape(mac)
+    ip = html.escape(ip)
+    hostname = html.escape(hostname)
     
     if language == "en":
         title = "Network Access"
