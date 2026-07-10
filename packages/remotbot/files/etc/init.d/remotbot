@@ -8,12 +8,36 @@ PROG=/usr/bin/python3
 SCRIPT=/usr/bin/pi4Bot.py
 PIDFILE=/var/run/remotbot.pid
 
+REQUIREMENTS=/usr/share/remotbot/requirements.txt
+
 install_deps() {
-    command -v pip3 >/dev/null 2>&1 || opkg install python3-pip 2>/dev/null || true
-    pip3 show python-telegram-bot >/dev/null 2>&1 || \
-        pip3 install "python-telegram-bot" --quiet 2>&1 | logger -t remotbot
-    pip3 show requests >/dev/null 2>&1 || \
-        pip3 install requests --quiet 2>&1 | logger -t remotbot
+    # Pastikan pip3 tersedia
+    if ! command -v pip3 >/dev/null 2>&1; then
+        logger -t remotbot "pip3 not found, trying opkg install python3-pip..."
+        opkg install python3-pip 2>&1 | logger -t remotbot
+        if ! command -v pip3 >/dev/null 2>&1; then
+            logger -t remotbot "ERROR: pip3 masih tidak tersedia setelah install. Abort."
+            return 1
+        fi
+    fi
+
+    # Install dari requirements.txt (versi ter-pin)
+    if [ ! -f "$REQUIREMENTS" ]; then
+        logger -t remotbot "ERROR: $REQUIREMENTS tidak ditemukan. Package mungkin rusak."
+        return 1
+    fi
+
+    # Cek apakah semua deps sudah terpasang (quick check)
+    if pip3 show python-telegram-bot requests >/dev/null 2>&1; then
+        return 0
+    fi
+
+    logger -t remotbot "Installing Python deps dari $REQUIREMENTS..."
+    if ! pip3 install -r "$REQUIREMENTS" --quiet 2>&1 | logger -t remotbot; then
+        logger -t remotbot "ERROR: pip3 install gagal. Bot mungkin tidak bisa start."
+        return 1
+    fi
+    logger -t remotbot "Python deps berhasil diinstall."
 }
 
 start_service() {
@@ -29,7 +53,10 @@ start_service() {
         return 1
     }
 
-    install_deps
+    install_deps || {
+        logger -t remotbot "ERROR: install_deps gagal. Service tidak dijalankan."
+        return 1
+    }
 
     # Ensure pending file exists and is owned by remotbot
     local PENDING_FILE=$(uci -q get remotbot.main.fas_pending_file 2>/dev/null || echo "/tmp/opennds_pending.json")

@@ -34,6 +34,9 @@ define Package/remotbot/install
 	$(INSTALL_BIN) $(PKG_BUILD_DIR)/files/usr/bin/fas_server.py $(1)/usr/bin/
 	$(INSTALL_BIN) $(PKG_BUILD_DIR)/files/usr/bin/remotbot_actions.py $(1)/usr/bin/
 	
+	$(INSTALL_DIR) $(1)/usr/share/remotbot
+	$(INSTALL_DATA) $(PKG_BUILD_DIR)/files/usr/share/remotbot/requirements.txt $(1)/usr/share/remotbot/
+	
 	$(INSTALL_DIR) $(1)/etc/init.d
 	$(INSTALL_BIN) $(PKG_BUILD_DIR)/files/etc/init.d/remotbot $(1)/etc/init.d/
 	$(INSTALL_BIN) $(PKG_BUILD_DIR)/files/etc/init.d/remotbot-fas $(1)/etc/init.d/
