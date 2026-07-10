@@ -321,6 +321,11 @@ iptables -F forwarding_rule
 
 ---
 
+## 👥 Contributors
+
+- [irfanFRizki](https://github.com/irfanFRizki) (Main Developer)
+- [agy cli](https://github.com/google-deepmind/antigravity) (AI Assistant / Pair Programmer)
+
 ## 📄 License
 
 MIT License — © 2024 [irfanFRizki](https://github.com/irfanFRizki)
