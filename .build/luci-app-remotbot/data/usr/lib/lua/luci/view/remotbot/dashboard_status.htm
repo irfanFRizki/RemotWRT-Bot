@@ -1,0 +1,211 @@
+<%+header%>
+<style>
+:root{
+  --rb-primary:#3498db;--rb-primary-dark:#2980b9;--rb-success:#27ae60;--rb-danger:#e74c3c;
+  --rb-warning:#f39c12;--rb-info:#1abc9c;--rb-dark:#2c3e50;--rb-gray:#95a5a6;
+  --rb-bg:#f5f7fa;--rb-card-bg:#ffffff;--rb-border:#e8eaed;--rb-text:#2c3e50;
+  --rb-text-light:#7f8c8d;--rb-shadow:0 2px 8px rgba(0,0,0,0.08);
+  --rb-shadow-hover:0 4px 16px rgba(0,0,0,0.12);--rb-radius:12px;
+}
+*{box-sizing:border-box}
+.rb-container{max-width:960px;margin:0 auto;padding:10px}
+.rb-header{
+  background:linear-gradient(135deg,var(--rb-dark),var(--rb-primary));
+  border-radius:var(--rb-radius);padding:28px 32px;margin-bottom:24px;color:#fff;
+  display:flex;justify-content:space-between;align-items:center;
+  box-shadow:var(--rb-shadow);position:relative;overflow:hidden
+}
+.rb-header::before{
+  content:'';position:absolute;top:-50%;right:-50%;width:200%;height:200%;
+  background:radial-gradient(circle,rgba(255,255,255,0.1) 0%,transparent 70%);
+  animation:pulse 4s ease-in-out infinite
+}
+@keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.05)}}
+.rb-header-content{position:relative;z-index:1}
+.rb-header h2{margin:0 0 6px;font-size:26px;font-weight:700;letter-spacing:-0.5px}
+.rb-header p{margin:0;opacity:0.9;font-size:14px;font-weight:400}
+.rb-status-badge{
+  display:inline-flex;align-items:center;gap:8px;padding:8px 18px;
+  border-radius:20px;font-size:13px;font-weight:700;background:rgba(255,255,255,0.2);
+  backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,0.3)
+}
+.rb-status-dot{width:10px;height:10px;border-radius:50%;animation:blink 2s infinite}
+.dot-active{background:#2ecc71;box-shadow:0 0 10px #2ecc71}
+.dot-inactive{background:#e74c3c;box-shadow:0 0 10px #e74c3c}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0.5}}
+.rb-card{
+  background:var(--rb-card-bg);border:1px solid var(--rb-border);
+  border-radius:var(--rb-radius);padding:24px 28px;margin-bottom:20px;
+  box-shadow:var(--rb-shadow);transition:all 0.3s ease;position:relative;overflow:hidden
+}
+.rb-card:hover{box-shadow:var(--rb-shadow-hover);transform:translateY(-2px)}
+.rb-card::before{
+  content:'';position:absolute;top:0;left:0;width:4px;height:100%;
+  background:linear-gradient(180deg,var(--rb-primary),var(--rb-info))
+}
+.rb-card h3{
+  margin:0 0 18px;font-size:17px;color:var(--rb-text);font-weight:700;
+  display:flex;align-items:center;gap:10px;padding-bottom:12px;
+  border-bottom:2px solid var(--rb-bg)
+}
+.rb-row{
+  display:flex;justify-content:space-between;align-items:center;
+  padding:12px 0;border-bottom:1px solid var(--rb-bg);font-size:14px;
+  transition:background 0.2s
+}
+.rb-row:last-child{border-bottom:none}
+.rb-row:hover{background:var(--rb-bg);margin:0 -10px;padding:12px 10px;border-radius:8px}
+.rb-label{color:var(--rb-text-light);font-weight:500;display:flex;align-items:center;gap:8px}
+.rb-val{font-weight:700;color:var(--rb-text);text-align:right}
+.rb-badge{
+  display:inline-flex;align-items:center;gap:6px;padding:5px 14px;
+  border-radius:16px;font-size:12px;font-weight:700
+}
+.badge-success{background:rgba(39,174,96,0.12);color:var(--rb-success);border:1px solid rgba(39,174,96,0.2)}
+.badge-danger{background:rgba(231,76,60,0.12);color:var(--rb-danger);border:1px solid rgba(231,76,60,0.2)}
+.badge-warning{background:rgba(243,156,18,0.12);color:var(--rb-warning);border:1px solid rgba(243,156,18,0.2)}
+.rb-alert{
+  background:linear-gradient(135deg,#fff3cd,#ffeaa7);border-left:4px solid var(--rb-warning);
+  border-radius:var(--rb-radius);padding:16px 20px;font-size:14px;margin-bottom:20px;
+  display:flex;align-items:start;gap:12px;box-shadow:var(--rb-shadow)
+}
+.rb-alert-icon{font-size:20px}
+.rb-alert-content{flex:1}
+.rb-alert strong{color:#d68910;display:block;margin-bottom:4px}
+.rb-alert a{color:var(--rb-primary-dark);font-weight:700;text-decoration:none;border-bottom:2px solid transparent}
+.rb-alert a:hover{border-bottom-color:var(--rb-primary-dark)}
+.btn-row{display:flex;gap:12px;flex-wrap:wrap;margin-top:8px}
+.rb-btn{
+  padding:10px 22px;border:none;border-radius:10px;font-size:14px;
+  font-weight:700;cursor:pointer;color:#fff;display:inline-flex;
+  align-items:center;gap:8px;transition:all 0.3s ease;box-shadow:0 2px 6px rgba(0,0,0,0.15);
+  text-decoration:none;justify-content:center
+}
+.rb-btn:hover{transform:translateY(-2px);box-shadow:0 4px 12px rgba(0,0,0,0.2)}
+.rb-btn:active{transform:translateY(0)}
+.btn-start{background:linear-gradient(135deg,var(--rb-success),#229954)}
+.btn-stop{background:linear-gradient(135deg,var(--rb-danger),#c0392b)}
+.btn-restart{background:linear-gradient(135deg,var(--rb-primary),var(--rb-primary-dark))}
+.btn-cfg{background:linear-gradient(135deg,var(--rb-gray),#7f8c8d)}
+.btn-cfg:hover{background:linear-gradient(135deg,#95a5a6,var(--rb-gray))}
+.rb-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;margin-top:16px}
+.rb-stat-box{
+  background:var(--rb-bg);border-radius:10px;padding:16px;text-align:center;
+  border:1px solid var(--rb-border);transition:all 0.3s ease
+}
+.rb-stat-box:hover{background:#eef2f7;transform:scale(1.02)}
+.rb-stat-icon{font-size:28px;margin-bottom:8px}
+.rb-stat-value{font-size:20px;font-weight:800;color:var(--rb-primary);margin-bottom:4px}
+.rb-stat-label{font-size:12px;color:var(--rb-text-light);font-weight:600;text-transform:uppercase;letter-spacing:0.5px}
+.rb-monospace{font-family:'SF Mono',Monaco,'Cascadia Code','Roboto Mono',Consolas,monospace;background:#f8f9fa;padding:4px 8px;border-radius:6px;border:1px solid var(--rb-border)}
+.rb-token-preview{letter-spacing:1px}
+@media(max-width:768px){
+  .rb-header{flex-direction:column;text-align:center;gap:16px;padding:24px}
+  .rb-header h2{font-size:22px}
+  .btn-row{flex-direction:column}
+  .rb-btn{width:100%}
+  .rb-row{flex-direction:column;gap:8px;text-align:center}
+  .rb-val{text-align:center}
+}
+</style>
+<div class="rb-container">
+<div class="rb-header">
+  <div class="rb-header-content">
+    <h2>🤖 RemotWRT Bot</h2>
+    <p>Telegram Monitoring Bot — OpenWrt / Raspberry Pi 4</p>
+  </div>
+  <% if self.running then %>
+  <span class="rb-status-badge"><span class="rb-status-dot dot-active"></span>Running</span>
+  <% else %>
+  <span class="rb-status-badge"><span class="rb-status-dot dot-inactive"></span>Stopped</span>
+  <% end %>
+</div>
+<% if not self.bot_token or self.bot_token == "" then %>
+<div class="rb-alert">
+  <span class="rb-alert-icon">⚠️</span>
+  <div class="rb-alert-content">
+    <strong>Bot token belum dikonfigurasi!</strong>
+    Buka <a href="<%=luci.dispatcher.build_url("admin","services","remotbot","settings")%>">Settings</a> dan isi token dari @BotFather.
+  </div>
+</div>
+<% end %>
+<div class="rb-card">
+  <h3>📊 Status Bot</h3>
+  <div class="rb-row">
+    <span class="rb-label">
+      <% if self.running then %>
+        <span class="rb-badge badge-success"><span style="width:8px;height:8px;background:#27ae60;border-radius:50%;display:inline-block"></span> Service Status</span>
+      <% else %>
+        <span class="rb-badge badge-danger"><span style="width:8px;height:8px;background:#e74c3c;border-radius:50%;display:inline-block"></span> Service Status</span>
+      <% end %>
+    </span>
+    <span class="rb-val">
+      <% if self.running then %>
+        <span class="rb-badge badge-success">● Running</span>
+      <% else %>
+        <span class="rb-badge badge-danger">● Stopped</span>
+      <% end %>
+    </span>
+  </div>
+  <div class="rb-row">
+    <span class="rb-label">🔄 Auto-Start</span>
+    <span class="rb-val" style="color:<%=self.enabled and '#27ae60' or '#e74c3c'%>;font-weight:700">
+      <%=self.enabled and "✓ Ya" or "✗ Tidak"%>
+    </span>
+  </div>
+  <div class="rb-row">
+    <span class="rb-label">🔑 Bot Token</span>
+    <span class="rb-val rb-monospace rb-token-preview" style="color:<%=(self.bot_token and self.bot_token~='') and '#27ae60' or '#e74c3c'%>">
+    <% if self.bot_token and self.bot_token ~= "" then %>
+      <span style="color:#27ae60"><%=self.bot_token:sub(1,8)%></span>••••••••••••<span style="color:#27ae60"><%=self.bot_token:sub(-4)%></span>
+    <% else %>Belum dikonfigurasi<% end %>
+    </span>
+  </div>
+  <div class="rb-row">
+    <span class="rb-label">👥 Allowed Users</span>
+    <span class="rb-val rb-monospace"><%=self.allowed ~= "" and self.allowed or "-"%></span>
+  </div>
+</div>
+<div class="rb-card">
+  <h3>⚙️ Kontrol Service</h3>
+  <form method="post" action="<%=luci.dispatcher.build_url("admin","services","remotbot","dashboard")%>">
+    <div class="btn-row">
+      <button class="rb-btn btn-start" type="submit" name="action" value="start">▶ Start</button>
+      <button class="rb-btn btn-stop" type="submit" name="action" value="stop">■ Stop</button>
+      <button class="rb-btn btn-restart" type="submit" name="action" value="restart">↺ Restart</button>
+      <a class="rb-btn btn-cfg" href="<%=luci.dispatcher.build_url("admin","services","remotbot","settings")%>">⚙ Settings</a>
+    </div>
+  </form>
+</div>
+<div class="rb-card">
+  <h3>ℹ️ Info Package</h3>
+  <div class="rb-grid">
+    <div class="rb-stat-box">
+      <div class="rb-stat-icon">📦</div>
+      <div class="rb-stat-value" style="font-size:16px">remotbot v1.0.0</div>
+      <div class="rb-stat-label">Package</div>
+    </div>
+    <div class="rb-stat-box">
+      <div class="rb-stat-icon">🐍</div>
+      <div class="rb-stat-value" style="font-size:14px">pi4Bot.py</div>
+      <div class="rb-stat-label">Script</div>
+    </div>
+    <div class="rb-stat-box">
+      <div class="rb-stat-icon">🌐</div>
+      <div class="rb-stat-value" style="font-size:14px">/www/cgi-bin/online</div>
+      <div class="rb-stat-label">CGI Online</div>
+    </div>
+    <div class="rb-stat-box">
+      <div class="rb-stat-icon">⚙️</div>
+      <div class="rb-stat-value" style="font-size:14px">/etc/config/remotbot</div>
+      <div class="rb-stat-label">Config</div>
+    </div>
+    <div class="rb-stat-box">
+      <div class="rb-stat-icon">📄</div>
+      <div class="rb-stat-value" style="font-size:14px">/var/run/remotbot.pid</div>
+      <div class="rb-stat-label">PID File</div>
+    </div>
+  </div>
+</div>
+</div>
+<%+footer%>

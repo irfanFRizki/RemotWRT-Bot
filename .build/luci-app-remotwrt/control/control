@@ -1,0 +1,9 @@
+Package: luci-app-remotwrt
+Version: 1.0.5-1
+Architecture: aarch64_cortex-a72
+Maintainer: RemotWRT <https://github.com/irfanFRizki/RemotWRT-Bot>
+Depends: voucher-wifi, luci-base
+Section: net
+Priority: optional
+Installed-Size: 4
+Description: LuCI interface for RemotWRT WiFi Voucher System (Services > RemotWRT WiFi)
