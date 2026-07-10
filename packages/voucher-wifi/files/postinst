@@ -3,20 +3,51 @@
 
 echo "=== Instalasi Voucher WiFi RemotWRT ==="
 
+# Generate random vouchers (8 alphanumeric characters)
+generate_random_voucher() {
+    head -c 32 /dev/urandom | md5sum | cut -c1-8 | tr 'a-f' 'A-F'
+}
+
 # Buat file voucher kosong jika belum ada
 if [ ! -f /etc/voucher_keluarga.txt ]; then
     touch /etc/voucher_keluarga.txt
-    echo "# Voucher Keluarga Default" > /etc/voucher_keluarga.txt
-    echo "KELUARGA123" >> /etc/voucher_keluarga.txt
-    echo "FAMILY2024" >> /etc/voucher_keluarga.txt
-    echo "RUMAH456" >> /etc/voucher_keluarga.txt
-    echo "✓ File voucher keluarga dibuat dengan 3 voucher default"
+    echo "# Voucher Keluarga Default (auto-generated)" > /etc/voucher_keluarga.txt
+    
+    VOUCHER1=$(generate_random_voucher)
+    VOUCHER2=$(generate_random_voucher)
+    VOUCHER3=$(generate_random_voucher)
+    
+    echo "$VOUCHER1" >> /etc/voucher_keluarga.txt
+    echo "$VOUCHER2" >> /etc/voucher_keluarga.txt
+    echo "$VOUCHER3" >> /etc/voucher_keluarga.txt
+    
+    echo "✓ File voucher keluarga dibuat dengan 3 voucher default:"
+    echo "  - $VOUCHER1"
+    echo "  - $VOUCHER2"
+    echo "  - $VOUCHER3"
 fi
 
 # Set permission untuk script
 chmod +x /usr/bin/voucher_auth.sh
-chmod +x /www/cgi-bin/voucher_manager.cgi
+chmod +x /usr/bin/remotwrt_firewall_helper.sh
+chmod +x /usr/bin/remotwrt_session_cleanup.sh
 echo "✓ Permission script diatur"
+
+# Setup cron job untuk session cleanup (jalan tiap menit)
+if [ -d /etc/crontabs ]; then
+    # Tambahkan ke crontab root jika belum ada
+    if ! grep -q "remotwrt_session_cleanup" /etc/crontabs/root 2>/dev/null; then
+        echo "* * * * * /usr/bin/remotwrt_session_cleanup.sh" >> /etc/crontabs/root
+        echo "✓ Cron job untuk session cleanup ditambahkan"
+    fi
+fi
+
+# Restart cron jika tersedia
+if command -v crond >/dev/null 2>&1; then
+    /etc/init.d/cron restart 2>/dev/null || true
+elif command -v cron >/dev/null 2>&1; then
+    /etc/init.d/cron restart 2>/dev/null || true
+fi
 
 # Backup konfigurasi OpenNDS lama jika ada
 if [ -f /etc/config/opennds ]; then
@@ -44,8 +75,13 @@ echo "=== Instalasi Selesai! ==="
 echo ""
 echo "📋 Langkah selanjutnya:"
 echo "1. Akses halaman login: http://192.168.1.1 (akan redirect ke OpenNDS)"
-echo "2. Kelola voucher: http://192.168.1.1/cgi-bin/voucher_manager.cgi"
-echo "3. Voucher default: KELUARGA123, FAMILY2024, RUMAH456"
+echo "2. Kelola voucher: LuCI → Services → RemotWRT WiFi"
+if [ -n "$VOUCHER1" ]; then
+    echo "3. Voucher default (unique to this installation):"
+    echo "   - $VOUCHER1"
+    echo "   - $VOUCHER2"
+    echo "   - $VOUCHER3"
+fi
 echo ""
 echo "⚙️  Konfigurasi OpenNDS ada di: /etc/config/opennds"
 echo "📝 Log login ada di: /var/log/voucher_login.log"

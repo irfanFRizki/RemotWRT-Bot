@@ -44,11 +44,13 @@ function api_remotwrt()
         local category = http.formvalue("category")
         local validity = http.formvalue("validity")
         local max_use = http.formvalue("max_use")
-        response = generate_voucher_code(category, validity, max_use)
+        local permanent = http.formvalue("permanent")
+        response = generate_voucher_code(category, validity, max_use, permanent)
     elseif action == "add_voucher" then
         local code = http.formvalue("code")
         local category = http.formvalue("category")
-        response = add_voucher(code, category)
+        local permanent = http.formvalue("permanent")
+        response = add_voucher(code, category, permanent)
     elseif action == "delete_voucher" then
         local code = http.formvalue("code")
         response = delete_voucher(code)
@@ -246,7 +248,7 @@ local function remove_voucher_from_file(code)
     return true
 end
 
-function generate_voucher_code(category, validity, max_use)
+function generate_voucher_code(category, validity, max_use, permanent)
     local uci = require "luci.model.uci".cursor()
     
     -- Validate inputs
@@ -262,6 +264,13 @@ function generate_voucher_code(category, validity, max_use)
     local max_use_num = tonumber(max_use)
     if not max_use_num or max_use_num < 1 or max_use_num > 1000 then
         max_use_num = 1
+    end
+    
+    -- Handle permanent flag: only applicable for keluarga
+    -- For pengguna_lain, always force permanent=0 (guest must expire)
+    local permanent_val = "0"
+    if category == "keluarga" and permanent and (permanent == "1" or permanent == true) then
+        permanent_val = "1"
     end
     
     -- Generate unique 8-character alphanumeric code
@@ -283,6 +292,7 @@ function generate_voucher_code(category, validity, max_use)
     uci:set("remotwrt", section_id, "max_use", tostring(max_use_num))
     uci:set("remotwrt", section_id, "uses", "0")
     uci:set("remotwrt", section_id, "created", tostring(os.time()))
+    uci:set("remotwrt", section_id, "permanent", permanent_val)
     uci:set("remotwrt", section_id, "status", "active")
     uci:commit("remotwrt")
     
@@ -296,11 +306,12 @@ function generate_voucher_code(category, validity, max_use)
         code = code,
         category = category,
         validity = validity_num,
-        max_use = max_use_num
+        max_use = max_use_num,
+        permanent = (permanent_val == "1")
     }
 end
 
-function add_voucher(code, category)
+function add_voucher(code, category, permanent)
     local uci = require "luci.model.uci".cursor()
     
     -- Validate inputs
@@ -310,6 +321,12 @@ function add_voucher(code, category)
     
     if not category or (category ~= "keluarga" and category ~= "pengguna_lain") then
         return {success = false, error = "Invalid category"}
+    end
+    
+    -- Handle permanent flag: only applicable for keluarga
+    local permanent_val = "0"
+    if category == "keluarga" and permanent and (permanent == "1" or permanent == true) then
+        permanent_val = "1"
     end
     
     -- Check if code already exists
@@ -332,6 +349,7 @@ function add_voucher(code, category)
     uci:set("remotwrt", section_id, "max_use", "1")
     uci:set("remotwrt", section_id, "uses", "0")
     uci:set("remotwrt", section_id, "created", tostring(os.time()))
+    uci:set("remotwrt", section_id, "permanent", permanent_val)
     uci:set("remotwrt", section_id, "status", "active")
     uci:commit("remotwrt")
     
@@ -340,7 +358,7 @@ function add_voucher(code, category)
         write_voucher_to_file(code, category)
     end
     
-    return {success = true, message = "Voucher added successfully", code = code}
+    return {success = true, message = "Voucher added successfully", code = code, permanent = (permanent_val == "1")}
 end
 
 function delete_voucher(code)

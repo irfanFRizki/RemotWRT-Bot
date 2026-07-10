@@ -152,6 +152,14 @@ build_ipk "luci-app-remotbot" \
     "LuCI interface for RemotWRT Telegram Bot (Services > Remot Bot)" \
     "remotbot, luci-base"
 
+build_ipk "luci-app-remotwrt" \
+    "LuCI interface for RemotWRT WiFi Voucher System (Services > RemotWRT WiFi)" \
+    "voucher-wifi, luci-base"
+
+build_ipk "voucher-wifi" \
+    "WiFi Voucher Authentication System with OpenNDS integration" \
+    "opennds, lua, libuci-lua"
+
 echo ""
 echo "-> Generating Packages index..."
 PKGS="$OUTPUT_DIR/Packages"
