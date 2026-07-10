@@ -34,6 +34,7 @@ import time
 import os
 import re
 import requests
+import shlex
 from datetime import datetime
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, ReplyKeyboardMarkup, KeyboardButton
 from telegram.ext import Application, CommandHandler, CallbackQueryHandler, ContextTypes, MessageHandler, filters
@@ -273,6 +274,17 @@ def run_command(command: str, timeout: int = 30) -> str:
         return r.stdout.strip() if r.returncode == 0 else f"Error: {r.stderr.strip()}"
     except subprocess.TimeoutExpired:
         return "Error: Command timeout"
+    except Exception as e:
+        return f"Error: {str(e)}"
+
+def run_command_argv(args: list, timeout: int = 30) -> str:
+    try:
+        r = subprocess.run(args, shell=False, capture_output=True, text=True, timeout=timeout)
+        return r.stdout.strip() if r.returncode == 0 else f"Error: {r.stderr.strip()}"
+    except subprocess.TimeoutExpired:
+        return "Error: Command timeout"
+    except FileNotFoundError:
+        return f"Error: Command not found: {args[0] if args else ''}"
     except Exception as e:
         return f"Error: {str(e)}"
 
@@ -1328,8 +1340,23 @@ async def cmd_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     if any(c in command.lower() for c in ['rm -rf','dd if=','mkfs','format','> /dev/']):
         await update.message.reply_text(t("cmd_blocked",cfg)); return
+
+    try:
+        parts_from_shlex = shlex.split(command)
+    except ValueError:
+        await update.message.reply_text("Format command tidak valid (quote tidak seimbang)")
+        return
+
+    if not parts_from_shlex:
+        await update.message.reply_text(t("cmd_format",cfg), parse_mode='HTML')
+        return
+
+    if parts_from_shlex[0].lower() != base_cmd:
+        await update.message.reply_text(t("cmd_blocked",cfg))
+        return
+
     loading = await update.message.reply_text(t("executing",cfg))
-    result  = run_command(command)
+    result  = run_command_argv(parts_from_shlex)
     if len(result) > 4000: result = result[:4000] + "\n... (truncated)"
     await loading.edit_text(f"💻 <b>Command:</b> <code>{command}</code>\n\n<b>Output:</b>\n<code>{result}</code>", parse_mode='HTML')
 

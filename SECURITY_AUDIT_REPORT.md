@@ -117,6 +117,16 @@ if not is_valid_mac(mac):
 
 **Audit handler callback:** Semua handler (`dev_whitelist_`, `dev_unblock_`, `dev_block_`, `unblock_`, `quick_block_`, `quick_allow_`, `ndsok_`, `ndsno_`) hanya meneruskan MAC ke ketiga fungsi ter-guard — tidak ada `run_command` inline dengan MAC mentah.
 
+### 1.7 Shell Injection di `/cmd` Handler — Penutupan Celah Bypass Allowlist (FIXED)
+**Masalah:** Perbaikan allowlist untuk `/cmd` di commit `5f6e1e3` tidak lengkap karena pencocokan string hanya memverifikasi kata pertama (`base_cmd`) dari command, tetapi eksekusi aktualnya menggunakan `run_command(command)` yang memanggil `subprocess.run(command, shell=True, ...)` dengan string utuh. Hal ini memungkinkan bypass menggunakan metakarakter shell (seperti `;`, `&&`, `|`, dsb.) di belakang argumen pertama yang lolos allowlist.
+
+**Solusi:**
+- ✅ Ditambahkan fungsi baru `run_command_argv(args: list)` dengan parameter `shell=False` (aman dari interpretasi metakarakter shell).
+- ✅ Di dalam `cmd_handler()`, input Telegram di-parse menggunakan `shlex.split(command)` menjadi list argumen.
+- ✅ Jika parsing gagal karena quote tidak seimbang (`ValueError`), dibalas dengan pesan error yang sesuai.
+- ✅ Hasil parse divalidasi ulang dengan membandingkan kata pertamanya (`parts_from_shlex[0].lower()`) dengan `base_cmd` yang disetujui.
+- ✅ Fungsi `run_command_argv(parts_from_shlex)` dipanggil sebagai ganti dari `run_command()`.
+
 ---
 
 ## ✅ 2. Bug Fungsional — Sinkronisasi (SELESAI)
