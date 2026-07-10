@@ -404,26 +404,98 @@ def check_wan() -> bool:
     return False
 
 def get_current_devices() -> list:
+    """Ambil data device dari CGI + OpenNDS (jika tersedia) + ARP"""
+    devices = []
+    seen_macs = set()
+    
     try:
         cfg      = load_config()
         cgi_path = cfg.get("cgi_online_path", "/www/cgi-bin/online")
         r = subprocess.run(["sh", cgi_path], capture_output=True, text=True, timeout=10)
-        if r.returncode != 0:
-            return []
-        lines = r.stdout.split("\n")
-        json_lines = []; collecting = False
-        for line in lines:
-            stripped = line.strip()
-            if not collecting and (stripped.startswith("[") or stripped.startswith("{")):
-                collecting = True
-            if collecting:
-                json_lines.append(line)
-        if not json_lines: return []
-        data = json.loads("\n".join(json_lines).strip())
-        return data if isinstance(data, list) else []
+        if r.returncode == 0:
+            lines = r.stdout.split("\n")
+            json_lines = []; collecting = False
+            for line in lines:
+                stripped = line.strip()
+                if not collecting and (stripped.startswith("[") or stripped.startswith("{")):
+                    collecting = True
+                if collecting:
+                    json_lines.append(line)
+            if json_lines:
+                data = json.loads("\n".join(json_lines).strip())
+                if isinstance(data, list):
+                    for d in data:
+                        mac = d.get("mac", "").lower()
+                        if mac:
+                            d["source"] = "cgi"
+                            devices.append(d)
+                            seen_macs.add(mac)
     except Exception as e:
-        logger.error(f"get_current_devices error: {e}")
-        return []
+        logger.error(f"CGI online error: {e}")
+    
+    # 2. Ambil dari OpenNDS (klien yang sudah approve/login)
+    try:
+        r = subprocess.run(["ndsctl", "clients"], capture_output=True, text=True, timeout=5)
+        if r.returncode == 0 and r.stdout.strip():
+            for line in r.stdout.strip().split("\n"):
+                parts = line.split()
+                if len(parts) >= 4:
+                    mac = parts[1].lower()
+                    ip = parts[2]
+                    status_code = parts[3]
+                    # Status: 0=Pending, 1=Authenticated, 2=Blocked
+                    if status_code == "1":  # Authenticated
+                        if mac not in seen_macs:
+                            hostname = parts[4] if len(parts) > 4 else "*"
+                            devices.append({
+                                "mac": mac,
+                                "ip": ip,
+                                "hostname": hostname,
+                                "status": "TERHUBUNG",
+                                "source": "opennds"
+                            })
+                            seen_macs.add(mac)
+    except Exception as e:
+        logger.error(f"OpenNDS clients error: {e}")
+    
+    # 3. Ambil dari ARP table (semua device di jaringan lokal)
+    try:
+        r = subprocess.run(["cat", "/proc/net/arp"], capture_output=True, text=True, timeout=5)
+        if r.returncode == 0:
+            for line in r.stdout.strip().split("\n")[1:]:  # Skip header
+                parts = line.split()
+                if len(parts) >= 6:
+                    ip = parts[0]
+                    mac = parts[3].lower()
+                    iface = parts[5]
+                    
+                    # Skip jika sudah ada atau MAC invalid
+                    if mac in seen_macs or mac == "00:00:00:00:00:00":
+                        continue
+                    
+                    # Cek hostname dari /etc/hosts atau dnsmasq
+                    hostname = "*"
+                    try:
+                        r_host = subprocess.run(["nslookup", ip], capture_output=True, text=True, timeout=3)
+                        if r_host.returncode == 0 and "name =" in r_host.stdout:
+                            for hline in r_host.stdout.split("\n"):
+                                if "name =" in hline:
+                                    hostname = hline.split("name =")[-1].strip().rstrip(".")
+                                    break
+                    except Exception:
+                        pass
+                    
+                    devices.append({
+                        "mac": mac,
+                        "ip": ip,
+                        "hostname": hostname,
+                        "status": "TERHUBUNG TIDAK AKTIF",
+                        "source": "arp"
+                    })
+    except Exception as e:
+        logger.error(f"ARP table error: {e}")
+    
+    return devices
 
 def block_mac(mac: str) -> bool:
     """Blokir MAC — simpan ke UCI (persistent) + iptables (aktif sekarang)"""
