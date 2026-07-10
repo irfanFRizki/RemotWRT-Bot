@@ -1,90 +1,21 @@
-```
-# Build directories
-.build/
-dist/
-build/
+# Compiled and build artifacts
+*.pyc
+__pycache__/
 
-# Debian packaging files
-*.deb
-*.rpm
-*.pkg.tar.xz
+# Dependencies
+.venv/
+venv/
 
-# Temporary files
-*.tmp
-*.temp
-*~
-
-# Logs
+# Logs and temp files
 *.log
+*.tmp
+*.swp
 
-# Environment files
+# Environment
 .env
 .env.local
 .env.*
 
-# IDE files
+# Editors
 .vscode/
 .idea/
-*.swp
-*.swo
-
-# Python
-__pycache__/
-*.pyc
-*.pyo
-*.pyd
-.Python
-env/
-venv/
-.venv/
-pip-log.txt
-pip-delete-this-directory.txt
-.tox/
-.coverage
-.coverage.*
-.cache
-nosetests.xml
-coverage.xml
-*.cover
-*.log
-.git/modules/
-*.sublime-workspace
-
-# Compiled and binary files
-*.o
-*.obj
-*.exe
-*.dll
-*.so
-*.a
-*.out
-
-# Compression files
-*.zip
-*.gz
-*.tar
-*.tgz
-*.bz2
-*.xz
-*.7z
-*.rar
-*.zst
-*.lz4
-*.lzh
-*.cab
-*.arj
-*.rpm
-*.deb
-*.Z
-*.lz
-*.lzo
-*.tar.gz
-*.tar.bz2
-*.tar.xz
-*.tar.zst
-
-# OpenWrt/LuCI specific
-luci-app-*/po/pot/
-luci-app-*/po/*/LC_MESSAGES/
-*.ipk
-```
