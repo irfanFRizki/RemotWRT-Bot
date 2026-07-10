@@ -25,10 +25,34 @@ import subprocess
 import json
 import time
 import os
+import re
 import requests
 from datetime import datetime
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, ReplyKeyboardMarkup, KeyboardButton
 from telegram.ext import Application, CommandHandler, CallbackQueryHandler, ContextTypes, MessageHandler, filters
+
+# ==================== INPUT VALIDATION ====================
+
+def is_valid_mac(mac: str) -> bool:
+    """Validasi format MAC address ketat: ^([0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}$"""
+    if not mac or not isinstance(mac, str):
+        return False
+    pattern = r"^([0-9A-Fa-f]{2}:){5}[0-9A-Fa-f]{2}$"
+    return bool(re.match(pattern, mac.strip()))
+
+def is_valid_ipv4(ip: str) -> bool:
+    """Validasi format IPv4 sederhana"""
+    if not ip or not isinstance(ip, str):
+        return False
+    pattern = r"^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$"
+    if not re.match(pattern, ip.strip()):
+        return False
+    # Validasi octet range 0-255
+    for octet in ip.split('.'):
+        num = int(octet)
+        if num < 0 or num > 255:
+            return False
+    return True
 
 # ==================== UCI CONFIG ====================
 
@@ -500,6 +524,10 @@ def get_current_devices() -> list:
 def block_mac(mac: str) -> bool:
     """Blokir MAC — simpan ke UCI (persistent) + iptables (aktif sekarang)"""
     mac = mac.lower().strip()
+    # Validasi MAC format
+    if not is_valid_mac(mac):
+        logger.error(f"block_mac: Invalid MAC format: {mac}")
+        return False
     # 1. Simpan ke UCI remotbot.blocked_macs (persistent)
     run_command(f"uci add_list remotbot.main.blocked_macs=\'{mac}\'")
     run_command("uci commit remotbot")
