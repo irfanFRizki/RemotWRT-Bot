@@ -14,6 +14,8 @@ function index()
     
     -- API endpoints (protected by LuCI session)
     entry({"admin", "services", "remotwrt", "api"}, call("api_remotwrt")).leaf = true
+    entry({"admin", "services", "remotwrt", "history_data"}, call("get_history_data")).leaf = true
+    entry({"admin", "services", "remotwrt", "clear_history"}, call("clear_history_data")).leaf = true
 end
 
 function api_remotwrt()
@@ -423,7 +425,11 @@ function add_firewall_rule(rule_type, mac, ip)
     fw_uci:commit("firewall")
     
     -- Call firewall helper script for single source of truth
-    os.execute(string.format("/usr/bin/remotwrt_firewall_helper.sh grant '%s' '%s' 0 0 >/dev/null 2>&1", mac, ip or ""))
+    if rule_type == "whitelist" then
+        os.execute(string.format("/usr/bin/remotwrt_firewall_helper.sh grant '%s' '%s' 1 0 >/dev/null 2>&1", mac, ip or ""))
+    else
+        os.execute(string.format("/usr/bin/remotwrt_firewall_helper.sh revoke '%s' '%s' >/dev/null 2>&1", mac, ip or ""))
+    end
     
     -- Reload firewall to apply changes immediately
     os.execute("/etc/init.d/firewall reload >/dev/null 2>&1")
@@ -484,4 +490,56 @@ function remove_firewall_rule(rule_type, ip)
     os.execute("/etc/init.d/firewall reload >/dev/null 2>&1")
     
     return {success = true, message = "Rule removed successfully"}
+end
+
+function get_history_data()
+    local http = require "luci.http"
+    local nixio = require "nixio"
+    local history_file = "/var/lib/remotwrt/device_history.json"
+    
+    http.prepare_content("application/json")
+    
+    if not nixio.fs.access(history_file) then
+        http.write("[]")
+        return
+    end
+    
+    local file = io.open(history_file, "r")
+    if not file then
+        http.write("[]")
+        return
+    end
+    
+    local entries = {}
+    for line in file:lines() do
+        if line and line ~= "" then
+            table.insert(entries, line)
+        end
+    end
+    file:close()
+    
+    -- Write as JSON array
+    http.write("[" .. table.concat(entries, ",") .. "]")
+end
+
+function clear_history_data()
+    local http = require "luci.http"
+    local nixio = require "nixio"
+    local history_file = "/var/lib/remotwrt/device_history.json"
+    
+    -- CSRF Protection
+    local method = http.getenv("REQUEST_METHOD")
+    if method == "POST" then
+        local token = http.formvalue("token") or http.getenv("HTTP_X_XSRF_TOKEN")
+        local disp = require "luci.dispatcher"
+        local expected_token = disp.token()
+        if not token or token ~= expected_token then
+            http.status(403, "Forbidden")
+            return
+        end
+    end
+    
+    os.execute("rm -f " .. history_file)
+    http.prepare_content("application/json")
+    http.write_json({success = true})
 end

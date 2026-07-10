@@ -112,6 +112,7 @@
             <input type="hidden" name="origurl" value="<%= origurl %>">
             <input type="hidden" name="redirurl" value="<%= redirurl %>">
             <input type="hidden" name="tok" value="<%= token %>">
+            <input type="hidden" name="username" id="username">
 
             <div class="form-group">
                 <label for="category">Kategori Pengguna:</label>
@@ -176,13 +177,17 @@
             }
         }
 
-        // Prevent form submission if category not selected
+        // Prevent form submission if category not selected, and construct username field
         document.querySelector('form').addEventListener('submit', function(e) {
             const category = document.getElementById('category').value;
+            const voucher = document.getElementById('voucher').value;
             if (!category) {
                 e.preventDefault();
                 alert('Silakan pilih kategori pengguna terlebih dahulu!');
+                return;
             }
+            // Set the hidden username field to category:voucher format for BinAuth
+            document.getElementById('username').value = category + ':' + voucher;
         });
     </script>
 </body>
