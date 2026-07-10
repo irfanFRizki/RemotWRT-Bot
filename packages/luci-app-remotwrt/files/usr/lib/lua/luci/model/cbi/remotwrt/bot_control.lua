@@ -8,13 +8,23 @@ local sys  = require "luci.sys"
 local http = require "luci.http"
 
 -- Handle start/stop/restart actions
+local csrf_error = false
 local action = http.formvalue("action")
-if action == "start" then
-    sys.call("/etc/init.d/remotbot start 2>/dev/null")
-elseif action == "stop" then
-    sys.call("/etc/init.d/remotbot stop 2>/dev/null")
-elseif action == "restart" then
-    sys.call("/etc/init.d/remotbot restart 2>/dev/null")
+if action then
+    local token = http.formvalue("token")
+    local disp = require "luci.dispatcher"
+    local expected_token = disp.token()
+    if not token or token ~= expected_token then
+        csrf_error = true
+    else
+        if action == "start" then
+            sys.call("/etc/init.d/remotbot start 2>/dev/null")
+        elseif action == "stop" then
+            sys.call("/etc/init.d/remotbot stop 2>/dev/null")
+        elseif action == "restart" then
+            sys.call("/etc/init.d/remotbot restart 2>/dev/null")
+        end
+    end
 end
 
 -- Check running status via PID file
@@ -32,6 +42,10 @@ m = SimpleForm("remotbot_control", translate("Telegram Bot Control"),
     translate("Kontrol dan konfigurasi Telegram Bot untuk monitoring OpenWrt."))
 m.reset = false
 m.submit = false
+
+if csrf_error then
+    m.errmessage = translate("Error: Token CSRF tidak valid atau kedaluwarsa.")
+end
 
 -- Status & control buttons
 s = m:section(SimpleSection)

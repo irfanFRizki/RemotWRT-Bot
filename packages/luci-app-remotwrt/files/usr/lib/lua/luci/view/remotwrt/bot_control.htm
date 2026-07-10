@@ -95,6 +95,7 @@
     Gunakan tombol di bawah untuk start/stop/restart service <code>remotbot</code>. Setelah mengubah konfigurasi bot, klik <strong>Restart</strong> agar perubahan berlaku.
   </div>
   <form method="post" action="<%=luci.dispatcher.build_url("admin","services","remotwrt","bot_control")%>">
+    <input type="hidden" name="token" value="<%=token or luci.dispatcher.token()%>" />
     <div class="btn-row">
       <button class="rb-btn btn-start" type="submit" name="action" value="start">▶ Start</button>
       <button class="rb-btn btn-stop" type="submit" name="action" value="stop">■ Stop</button>

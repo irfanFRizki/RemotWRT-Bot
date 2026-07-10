@@ -412,18 +412,21 @@ function add_firewall_rule(rule_type, mac, ip)
     uci:set("remotwrt", section_id, "enabled", "1")
     uci:commit("remotwrt")
     
-    -- Also add to OpenWRT firewall config for immediate effect
-    local fw_uci = require "luci.model.uci".cursor()
-    local fw_section = fw_uci:add("firewall", "rule")
-    fw_uci:set("firewall", fw_section, "name", "RemotWRT_" .. rule_type .. "_" .. mac:gsub(":", ""))
-    fw_uci:set("firewall", fw_section, "target", rule_type == "whitelist" and "ACCEPT" or "DROP")
-    fw_uci:set("firewall", fw_section, "src", "lan")
-    fw_uci:set("firewall", fw_section, "proto", "all")
-    if ip then
-        fw_uci:set("firewall", fw_section, "src_ip", ip)
+    local fw_section
+    -- Also add to OpenWRT firewall config for immediate effect (ONLY for blacklist, whitelist is handled by helper)
+    if rule_type == "blacklist" then
+        local fw_uci = require "luci.model.uci".cursor()
+        fw_section = fw_uci:add("firewall", "rule")
+        fw_uci:set("firewall", fw_section, "name", "RemotWRT_" .. rule_type .. "_" .. mac:gsub(":", ""))
+        fw_uci:set("firewall", fw_section, "target", "DROP")
+        fw_uci:set("firewall", fw_section, "src", "lan")
+        fw_uci:set("firewall", fw_section, "proto", "all")
+        if ip then
+            fw_uci:set("firewall", fw_section, "src_ip", ip)
+        end
+        fw_uci:set("firewall", fw_section, "src_mac", mac)
+        fw_uci:commit("firewall")
     end
-    fw_uci:set("firewall", fw_section, "src_mac", mac)
-    fw_uci:commit("firewall")
     
     -- Call firewall helper script for single source of truth
     if rule_type == "whitelist" then
