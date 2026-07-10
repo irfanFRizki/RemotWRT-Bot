@@ -1,97 +1,78 @@
 ```
-# Compiled and build artifacts
-*.pyc
-__pycache__/
-*.o
-*.obj
-*.so
-*.dll
-*.exe
-*.class
-*.a
-*.lib
-*.out
+# Build artifacts
+.build/
+*.ipk
+*.deb
+*.rpm
+*.tar.gz
+*.tar.xz
+*.zip
+*.gz
+*.bz2
+*.xz
 
-# Dependencies
-node_modules/
-venv/
-.venv/
+# Debian packaging
+debian-binary
+*.deb
+*.changes
+*.dsc
+
+# Temporary and log files
+*.tmp
+*.log
+*.swp
+*~
+
+# Environment files
 .env
 .env.local
-.env.*
+*.env.*
 
-# Build directories
-dist/
-build/
-target/
-.gradle/
-
-# Python specific
-*.pyc
-__pycache__/
-*.pyo
-*.pyd
-.Python
-*.so
-.Python
-*.egg-info/
-.eggs/
-
-# Logs and temp files
-*.log
-*.tmp
-*.swp
-*.swo
-*.bak
-*.~*
-
-# OS generated files
+# OS specific
 .DS_Store
 Thumbs.db
-ehthumbs.db
-Icon?
-.directory
-.Trashes
-*.nib
-.viminfo
 
 # Coverage reports
 coverage/
 htmlcov/
 .coverage
 
-# IDE specific
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.so
+*.egg-info/
+.eggs/
+
+# Node.js
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Compiled files
+*.o
+*.obj
+*.a
+*.lib
+*.dll
+*.so
+*.dylib
+*.exe
+*.out
+
+# IDE
 .vscode/
 .idea/
 *.swp
 *.swo
-*.tmp
 
-# MyPy cache
-.mypy_cache/
-.pytest_cache/
-
-# Compressed files
-*.zip
-*.gz
-*.tar
-*.tgz
-*.bz2
-*.xz
-*.7z
-*.rar
-*.zst
-*.lz4
-*.lzh
-*.cab
-*.arj
-*.rpm
-*.deb
-*.Z
-*.lz
-*.lzo
-*.tar.gz
-*.tar.bz2
-*.tar.xz
-*.tar.zst
+# Distribution / packaging
+.dist/
+dist/
+build/
+*.egg
 ```

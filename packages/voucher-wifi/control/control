@@ -12,4 +12,4 @@ Description: Sistem Login WiFi Voucher dengan OpenNDS untuk RemotWRT Bot
  - Manajemen voucher dan IP whitelist via LuCI
  - Integrasi otomatis dengan firewall OpenWrt
  - Dashboard monitoring client terautentikasi
-Depends: opennds, uhttpd, uhttpd-mod-cgi, lua, libuci-lua
+Depends: opennds, uhttpd, lua, libuci-lua

@@ -134,30 +134,46 @@
         if (category) {
             var validity = prompt("Enter validity in minutes:", "60");
             if (validity) {
-                XHR.post('<%=url('admin/services/remotwrt/api')%>', {
-                    action: 'generate_voucher',
-                    category: category,
-                    validity: validity
-                }, function(x, data) {
-                    if (data.success) {
-                        alert("Voucher generated: " + data.code);
-                    }
-                });
+                var max_use = prompt("Enter max usage:", "1");
+                if (max_use) {
+                    // Get CSRF token from LuCI session
+                    var token = document.getElementsByName('token')[0]?.value || '';
+                    
+                    XHR.post('<%=url('admin/services/remotwrt/api')%>', {
+                        action: 'generate_voucher',
+                        category: category,
+                        validity: validity,
+                        max_use: max_use,
+                        token: token
+                    }, function(x, data) {
+                        if (data.success) {
+                            alert("Voucher generated: " + data.code);
+                        } else {
+                            alert("Error: " + (data.error || "Unknown error"));
+                        }
+                    });
+                }
             }
         }
     }
     
     function addFirewallRule(rule_type, mac, ip) {
         if (confirm("Add " + mac + " to " + rule_type + "?")) {
+            // Get CSRF token from LuCI session
+            var token = document.getElementsByName('token')[0]?.value || '';
+            
             XHR.post('<%=url('admin/services/remotwrt/api')%>', {
                 action: 'add_firewall_rule',
                 rule_type: rule_type,
                 mac: mac,
-                ip: ip
+                ip: ip,
+                token: token
             }, function(x, data) {
                 if (data.success) {
                     alert("Device added to " + rule_type);
                     refreshDevices();
+                } else {
+                    alert("Error: " + (data.error || "Unknown error"));
                 }
             });
         }

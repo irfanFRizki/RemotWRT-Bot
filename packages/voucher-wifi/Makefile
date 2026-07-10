@@ -19,7 +19,7 @@ define Package/voucher-wifi
   SUBMENU:=Applications
   TITLE:=Sistem Login WiFi Voucher dengan OpenNDS
   URL:=https://github.com/remotwrt/remotwrt-bot
-  DEPENDS:=+opennds +uhttpd +uhttpd-mod-cgi +lua +libuci-lua
+  DEPENDS:=+opennds +uhttpd +lua +libuci-lua
   PKGARCH:=all
 endef
 
@@ -39,7 +39,6 @@ endef
 define Package/voucher-wifi/install
 	$(INSTALL_DIR) $(1)/etc/opennds/theme
 	$(INSTALL_DIR) $(1)/usr/bin
-	$(INSTALL_DIR) $(1)/www/cgi-bin
 	$(INSTALL_DIR) $(1)/etc/config
 	
 	# Install tema OpenNDS
@@ -47,9 +46,6 @@ define Package/voucher-wifi/install
 	
 	# Install script autentikasi
 	$(INSTALL_BIN) ./files/usr/bin/voucher_auth.sh $(1)/usr/bin/voucher_auth.sh
-	
-	# Install CGI manager
-	$(INSTALL_BIN) ./files/www/cgi-bin/voucher_manager.cgi $(1)/www/cgi-bin/voucher_manager.cgi
 	
 	# Install konfigurasi default
 	$(INSTALL_CONF) ./files/etc/config/opennds $(1)/etc/config/opennds.default

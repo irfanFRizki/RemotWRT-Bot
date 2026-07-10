@@ -48,6 +48,7 @@ check_firewall_whitelist() {
 }
 
 # Fungsi validasi voucher keluarga dengan checking expiry dan quota
+# Support field "permanent" - jika permanent=1, skip pengecekan expiry
 validate_keluarga_voucher() {
     local voucher=$1
     local current_time=$(date +%s)
@@ -65,6 +66,7 @@ validate_keluarga_voucher() {
                 local uses=$(uci get remotwrt.@voucher["$section"].uses 2>/dev/null || echo "0")
                 local created=$(uci get remotwrt.@voucher["$section"].created 2>/dev/null || echo "0")
                 local status=$(uci get remotwrt.@voucher["$section"].status 2>/dev/null || echo "active")
+                local permanent=$(uci get remotwrt.@voucher["$section"].permanent 2>/dev/null || echo "0")
                 
                 # Cek status
                 if [ "$status" != "active" ]; then
@@ -72,8 +74,10 @@ validate_keluarga_voucher() {
                     return 1
                 fi
                 
-                # Cek expiry
-                if [ $validity -gt 0 ] && [ $created -gt 0 ]; then
+                # Cek expiry - SKIP JIKA permanent=1
+                # permanent=1 berarti akses selamanya, tidak ada expiry
+                # max_use tetap dicek meskipun permanent (untuk limit device sharing)
+                if [ "$permanent" != "1" ] && [ $validity -gt 0 ] && [ $created -gt 0 ]; then
                     local expiry_time=$((created + validity * 60))
                     if [ $current_time -gt $expiry_time ]; then
                         log_auth "FAILED - Voucher expired"
@@ -81,7 +85,7 @@ validate_keluarga_voucher() {
                     fi
                 fi
                 
-                # Cek quota
+                # Cek quota (tetap berlaku untuk permanent voucher)
                 if [ $max_use -gt 0 ] && [ $uses -ge $max_use ]; then
                     log_auth "FAILED - Max use reached ($uses/$max_use)"
                     return 1
@@ -92,7 +96,7 @@ validate_keluarga_voucher() {
         done
     fi
     
-    # Fallback: cek dari file teks
+    # Fallback: cek dari file teks (tanpa support permanent)
     if [ -f /etc/voucher_keluarga.txt ]; then
         if grep -qx "$voucher" /etc/voucher_keluarga.txt; then
             return 0
@@ -120,10 +124,52 @@ increment_voucher_usage() {
     fi
 }
 
-# Validasi pengguna lain
-validate_pengguna_lain() {
-    log_auth "Pengguna Lain login - WiFi Pribadi tidak dipakai secara umum"
-    return 0
+# Validasi pengguna lain - SEKARANG WAJIB VOUCHER (tidak ada lagi jalur tanpa kode)
+validate_pengguna_lain_voucher() {
+    local voucher=$1
+    local current_time=$(date +%s)
+    
+    # Cek dari UCI config untuk voucher category=pengguna_lain
+    if command -v uci >/dev/null 2>&1 && [ -f /etc/config/remotwrt ]; then
+        for section in $(uci show remotwrt 2>/dev/null | grep '=voucher' | cut -d'.' -f2 | cut -d'=' -f1); do
+            local code=$(uci get remotwrt.@voucher["$section"].code 2>/dev/null)
+            local cat=$(uci get remotwrt.@voucher["$section"].category 2>/dev/null)
+            if [ "$code" = "$voucher" ] && [ "$cat" = "pengguna_lain" ]; then
+                local validity=$(uci get remotwrt.@voucher["$section"].validity 2>/dev/null || echo "60")
+                local max_use=$(uci get remotwrt.@voucher["$section"].max_use 2>/dev/null || echo "1")
+                local uses=$(uci get remotwrt.@voucher["$section"].uses 2>/dev/null || echo "0")
+                local created=$(uci get remotwrt.@voucher["$section"].created 2>/dev/null || echo "0")
+                local status=$(uci get remotwrt.@voucher["$section"].status 2>/dev/null || echo "active")
+                
+                # Cek status
+                if [ "$status" != "active" ]; then
+                    log_auth "FAILED - Voucher status not active: $status"
+                    return 1
+                fi
+                
+                # Cek expiry (guest tidak pernah permanent)
+                if [ $validity -gt 0 ] && [ $created -gt 0 ]; then
+                    local expiry_time=$((created + validity * 60))
+                    if [ $current_time -gt $expiry_time ]; then
+                        log_auth "FAILED - Voucher expired"
+                        return 1
+                    fi
+                fi
+                
+                # Cek quota
+                if [ $max_use -gt 0 ] && [ $uses -ge $max_use ]; then
+                    log_auth "FAILED - Max use reached ($uses/$max_use)"
+                    return 1
+                fi
+                
+                return 0
+            fi
+        done
+    fi
+    
+    # Tidak ada fallback ke hardcoded atau bypass
+    log_auth "FAILED - Voucher pengguna_lain tidak ditemukan: $voucher"
+    return 1
 }
 
 # Proses autentikasi
@@ -150,13 +196,20 @@ authenticate() {
             ;;
             
         "pengguna_lain")
-            if validate_pengguna_lain; then
-                log_auth "SUCCESS - Pengguna Lain"
+            if [ -z "$VOUCHER" ]; then
+                log_auth "FAILED - Pengguna Lain tanpa voucher"
+                echo "0"
+                exit 0
+            fi
+            
+            if validate_pengguna_lain_voucher "$VOUCHER"; then
+                log_auth "SUCCESS - Pengguna Lain: $VOUCHER"
                 echo "1"
-                echo "$(date '+%Y-%m-%d %H:%M:%S') - $CLIENT_MAC ($CLIENT_IP) - Pengguna Lain - WiFi Pribadi" >> /var/log/voucher_login.log
+                increment_voucher_usage "$VOUCHER"
+                echo "$(date '+%Y-%m-%d %H:%M:%S') - $CLIENT_MAC ($CLIENT_IP) - Pengguna Lain - $VOUCHER" >> /var/log/voucher_login.log
                 exit 0
             else
-                log_auth "FAILED - Pengguna Lain ditolak"
+                log_auth "FAILED - Voucher pengguna_lain tidak valid/expired: $VOUCHER"
                 echo "0"
                 exit 0
             fi
