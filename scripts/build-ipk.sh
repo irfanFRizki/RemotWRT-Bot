@@ -2,7 +2,7 @@
 # build-ipk.sh — Build IPK OpenWrt (gzip tar format)
 set -e
 
-VERSION="${1:-1.0.5}"
+VERSION="${1:-1.0.4}"
 RELEASE="1"
 ARCH="aarch64_cortex-a72"
 BUILD_DIR="$(pwd)/.build"
@@ -79,8 +79,27 @@ fi
 echo ""; echo "==========================="
 echo " RemotWRT Bot Installed!"
 echo "==========================="
-echo "Next: Configure via LuCI -> Services -> RemotWRT WiFi -> Bot Control"
+echo "Next: opkg install luci-app-remotbot_*.ipk"
+echo "Then: LuCI -> Services -> Remot Bot -> Settings"
 echo ""
+exit 0
+POSTEOF
+
+    elif [ "$PKG_NAME" = "luci-app-remotbot" ]; then
+        cat > "$CTRL_DIR/postinst" <<'POSTEOF'
+#!/bin/sh
+[ "${IPKG_NO_SCRIPT}" = "1" ] && exit 0
+[ -s ${IPKG_INSTROOT}/lib/functions.sh ] || exit 0
+. ${IPKG_INSTROOT}/lib/functions.sh
+default_postinst $0 $@
+if [ -f /etc/uci-defaults/luci-app-remotbot ]; then
+    sh /etc/uci-defaults/luci-app-remotbot && rm -f /etc/uci-defaults/luci-app-remotbot
+fi
+rm -rf /tmp/luci-indexcache /tmp/luci-modulecache/ 2>/dev/null || true
+echo "==========================="
+echo " LuCI Remot Bot Installed!"
+echo " Go: Services > Remot Bot"
+echo "==========================="
 exit 0
 POSTEOF
     else
@@ -97,6 +116,13 @@ POSTEOF
 default_prerm $0 $@
 /etc/init.d/remotbot stop    2>/dev/null || true
 /etc/init.d/remotbot disable 2>/dev/null || true
+exit 0
+PRMEOF
+    elif [ "$PKG_NAME" = "luci-app-remotbot" ]; then
+        cat > "$CTRL_DIR/prerm" <<'PRMEOF'
+#!/bin/sh
+[ "${IPKG_NO_SCRIPT}" = "1" ] && exit 0
+rm -rf /tmp/luci-indexcache /tmp/luci-modulecache/ 2>/dev/null || true
 exit 0
 PRMEOF
     else
@@ -122,13 +148,9 @@ build_ipk "remotbot" \
     "RemotWRT Telegram Monitoring Bot for OpenWrt / Raspberry Pi 4" \
     "python3-light, python3-pip"
 
-build_ipk "luci-app-remotwrt" \
-    "LuCI interface for RemotWRT WiFi Voucher System (Services > RemotWRT WiFi)" \
-    "voucher-wifi, luci-base"
-
-build_ipk "voucher-wifi" \
-    "WiFi Voucher Authentication System with OpenNDS integration" \
-    "opennds, lua, libuci-lua"
+build_ipk "luci-app-remotbot" \
+    "LuCI interface for RemotWRT Telegram Bot (Services > Remot Bot)" \
+    "remotbot, luci-base"
 
 echo ""
 echo "-> Generating Packages index..."
@@ -164,5 +186,5 @@ echo ""
 echo "Install ke OpenWrt:"
 echo "  scp dist/*.ipk root@192.168.7.1:/tmp/"
 echo "  opkg install /tmp/remotbot_*.ipk --nodeps"
-echo "  opkg install /tmp/luci-app-remotwrt_*.ipk"
+echo "  opkg install /tmp/luci-app-remotbot_*.ipk"
 echo ""
