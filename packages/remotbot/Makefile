@@ -2,8 +2,8 @@
 # Untuk build gunakan: bash ../../scripts/build-ipk.sh
 
 PKG_NAME    := remotbot
-PKG_VERSION := 1.0.5
-PKG_RELEASE := 2
+PKG_VERSION := 1.0.4
+PKG_RELEASE := 16
 
 PKG_LICENSE := MIT
 PKG_MAINTAINER := RemotWRT-Bot Team
@@ -14,7 +14,7 @@ define Package/remotbot
   SECTION:=net
   CATEGORY:=Network
   TITLE:=RemotWRT-Bot - Telegram Bot untuk OpenWrt Monitoring
-  DEPENDS:=+python3 +python3-light +libuci +curl +iptables +opennds +voucher-wifi
+  DEPENDS:=+python3 +python3-light +libuci +curl +iptables
 endef
 
 define Package/remotbot/description
