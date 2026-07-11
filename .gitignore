@@ -1,34 +1,43 @@
 ```
-# Compiled and build artifacts
-*.pyc
-__pycache__/
+# Build artifacts
 *.o
 *.obj
-dist/
-build/
-target/
+*.a
+*.so
+*.dll
+*.exe
+*.out
 
 # Dependencies
 node_modules/
 venv/
 .venv/
-.julia/
-.zig/
+__pycache__/
+.mypy_cache/
+.pytest_cache/
+.dist-info/
 
-# Logs and temp files
-*.log
-*.tmp
-*.swp
-*.swo
+# Distribution packages
+dist/
+build/
+*.tar.gz
+*.zip
+*.egg-info/
 
-# Environment
+# Environment files
 .env
 .env.local
 *.env.*
 
-# Editors
+# Editor/IDE files
 .vscode/
 .idea/
+*.swp
+*.swo
+*.tmp
+
+# Logs
+*.log
 
 # System files
 .DS_Store
@@ -39,12 +48,9 @@ coverage/
 htmlcov/
 .coverage
 
-# Gradle
-.gradle/
-
-# MyPy
-.mypy_cache/
-
-# Pytest
-.pytest_cache/
+# OpenWrt/LuCI specific
+*.ipk
+*.manifest
+*.bin
+*.img
 ```

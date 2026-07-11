@@ -2,7 +2,7 @@
 # Untuk build IPK jalankan: bash scripts/build-ipk.sh
 
 PKG_NAME    := remotbot
-PKG_VERSION := 1.0.5
+PKG_VERSION := 1.0.0
 PKG_RELEASE := 1
 ARCH        := aarch64_cortex-a72
 

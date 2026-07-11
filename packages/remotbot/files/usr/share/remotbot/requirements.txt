@@ -1,8 +1,0 @@
-# requirements.txt — Python dependencies untuk RemotWRT Bot
-# Pin versi eksplisit agar tidak ada breaking change saat upgrade.
-#
-# python-telegram-bot v21.x: menggunakan async API (Application.builder(),
-# ContextTypes, CallbackQueryHandler, dll). Kompatibel dengan sintaks di pi4Bot.py.
-# Jangan downgrade ke <20 karena async API hanya ada di v20+.
-python-telegram-bot==21.*
-requests>=2.31,<3
